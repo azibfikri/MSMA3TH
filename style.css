@@ -1,0 +1,66 @@
+:root{
+  --bg: #0b0f14;
+  --card: #111723;
+  --muted: #7f8ea3;
+  --text: #e8f0ff;
+  --accent: #4ea8ff;
+  --ok: #7be495;
+  --warn: #ffd166;
+  --danger: #ff6b6b;
+  --ring: rgba(78,168,255,.25);
+  --radius: 16px;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,Segoe UI,Roboto,Inter,Arial}
+.container{max-width:1100px;margin:0 auto;padding:20px}
+header h1{margin:.2rem 0 0}
+.sub{color:var(--muted);margin:.25rem 0 0}
+
+.grid{display:grid;gap:16px}
+@media (min-width:900px){ .grid{grid-template-columns:1fr 1fr 1fr} }
+
+.card{background:var(--card);border:1px solid #1a2433;border-radius:var(--radius);padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.card h2{margin:.2rem 0 1rem}
+.card h3{margin:.5rem 0}
+
+.row{display:grid;gap:10px;margin:10px 0}
+.row.two{grid-template-columns:1fr 1fr}
+.row.four{grid-template-columns:repeat(4,1fr)}
+.row.six{grid-template-columns:repeat(6, minmax(0,1fr));align-items:end}
+
+label{display:block;font-size:.9rem;color:var(--muted);margin-bottom:4px}
+input{
+  width:100%;padding:10px 12px;border-radius:10px;border:1px solid #26344a;background:#0e1520;color:var(--text);
+  outline:none;transition:border .15s, box-shadow .15s
+}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--ring)}
+details{margin-top:8px}
+summary{cursor:pointer;color:var(--accent)}
+
+.box{border:1px dashed #243247;border-radius:12px;padding:10px}
+
+.actions{display:flex;align-items:center;gap:14px}
+button{
+  appearance:none;border:0;background:var(--accent);color:#021b33;
+  font-weight:700;padding:12px 18px;border-radius:12px;cursor:pointer;
+  box-shadow:0 8px 20px rgba(78,168,255,.25)
+}
+button:hover{filter:brightness(1.05)}
+#msg{color:var(--muted)}
+
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px}
+.k{display:block;color:var(--muted);font-size:.9rem}
+.metrics span:last-child{font-size:1.25rem;font-weight:700}
+
+.tableWrap{overflow:auto;border-radius:12px;border:1px solid #1a2433}
+table{width:100%;border-collapse:collapse;background:#0f1724}
+thead th{position:sticky;top:0;background:#0e1520}
+th,td{padding:10px 12px;border-bottom:1px solid #1a2433;text-align:right}
+th:first-child, td:first-child{text-align:left}
+tfoot th{background:#0e1520;font-weight:800}
+
+.hint{color:var(--muted);font-size:.9rem}
+.footer{opacity:.8}
+.bad{color:var(--danger)}
+.good{color:var(--ok)}
