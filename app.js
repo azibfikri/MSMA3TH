@@ -144,3 +144,50 @@ $("calcBtn").addEventListener("click", calculate);
 
 // First render
 calculate();
+
+// ---------- Tutorial Popup ----------
+const tutorialSteps = [
+  "👋 Welcome! This tool replicates the MSMA Time–Area Method calculator from Excel.",
+  "Step 1: Enter design rainfall inputs (location, ARI, duration, IDF constants).",
+  "Step 2: Adjust pervious and impervious areas, plus losses (initial & continuous).",
+  "Step 3: Edit the rainfall temporal pattern fractions (they should sum ≈ 1.0).",
+  "Finally, click **Calculate** to see rainfall depth, losses, and excess runoff!"
+];
+
+let tutorialIndex = 0;
+const tutorialOverlay = document.getElementById("tutorial");
+const tutorialStepBox = document.getElementById("tutorial-step");
+const nextBtn = document.getElementById("tutorial-next");
+const closeBtn = document.getElementById("tutorial-close");
+
+function showTutorial() {
+  tutorialOverlay.classList.remove("hidden");
+  tutorialStepBox.innerHTML = `<p>${tutorialSteps[tutorialIndex]}</p>`;
+  nextBtn.style.display = (tutorialIndex < tutorialSteps.length - 1) ? "inline-block" : "none";
+}
+
+function nextTutorial() {
+  tutorialIndex++;
+  if (tutorialIndex < tutorialSteps.length) {
+    tutorialStepBox.innerHTML = `<p>${tutorialSteps[tutorialIndex]}</p>`;
+    if (tutorialIndex === tutorialSteps.length - 1) {
+      nextBtn.style.display = "none";
+    }
+  }
+}
+
+function closeTutorial() {
+  tutorialOverlay.classList.add("hidden");
+}
+
+// Event listeners
+nextBtn.addEventListener("click", nextTutorial);
+closeBtn.addEventListener("click", closeTutorial);
+
+// Always show on page load (every refresh)
+window.addEventListener("load", () => {
+  tutorialIndex = 0;
+  showTutorial();
+});
+
+
