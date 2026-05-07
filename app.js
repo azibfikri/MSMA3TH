@@ -114,6 +114,8 @@ function calculate(){
   $("outI").textContent = fmt(i_mmhr, 3);
   $("outDepth").textContent = fmt(totalDepth, 3);
 
+  if ($("totalDepthBox")) $("totalDepthBox").textContent = fmt(totalDepth, 3);
+
   // Render table
   const tbody = $("resultTable").querySelector("tbody");
   tbody.innerHTML = "";
@@ -144,3 +146,10 @@ $("calcBtn").addEventListener("click", calculate);
 
 // First render
 calculate();
+
+
+function solveSimpleChallenge() {
+  console.log("Page loaded, running setup...");
+  // You can add anything here that should run when page loads
+}
+

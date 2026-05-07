@@ -1,108 +1,337 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Time–Area Method (MSMA) Calculator</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <header class="container">
     <h1>Time–Area Method (MSMA) Calculator</h1>
-    <p class="sub">Edit inputs & hit “Calculate”.</p>
+    <p class="sub">Edit inputs.</p>
   </header>
 
-  <main class="container grid">
-    <section class="card">
-      <h2>Design Rainfall (IDF)</h2>
-      <div class="row">
-        <label>Location</label>
-        <input id="location" type="text" value="Ibu Pejabat JPS, Kuala Lumpur" />
-      </div>
-      <div class="row two">
-        <div>
+  <main class="container">
+    <div
+      style="display: grid; grid-template-columns: 380px 1fr; gap: 25px; align-items: start; max-width: 1200px; margin: 0 auto;">
+
+      <!-- Left Column: Design Rainfall (IDF) -->
+      <section class="card">
+        <h2>Design Rainfall (IDF)</h2>
+        <div class="row" style="margin-bottom: 15px;">
+          <label for="state">State</label>
+          <select id="state" onchange="updateStations()" style="width: 100%;">
+            <option value="">-- Select State --</option>
+            <option value="Johor">Johor</option>
+            <option value="Kedah">Kedah</option>
+            <option value="Kelantan">Kelantan</option>
+            <option value="Kuala Lumpur">Kuala Lumpur</option>
+            <option value="Melaka">Melaka</option>
+            <option value="Negeri Sembilan">Negeri Sembilan</option>
+            <option value="Pahang">Pahang</option>
+            <option value="Pulau Pinang">Pulau Pinang</option>
+            <option value="Perak">Perak</option>
+            <option value="Perlis">Perlis</option>
+            <option value="Selangor">Selangor</option>
+            <option value="Terengganu">Terengganu</option>
+          </select>
+        </div>
+
+        <div class="row" style="margin-bottom: 15px;">
+          <label for="stationSelect">Station ID / Name</label>
+          <select id="stationSelect" onchange="autofillConstants()" style="width: 100%;">
+            <option value="">-- Select Station --</option>
+          </select>
+        </div>
+
+        <div class="row" style="margin-bottom: 15px;">
           <label>ARI (years)</label>
-          <input id="ariYears" type="number" step="1" value="20" />
+          <select id="ariYears" style="width: 100%;">
+            <option value="">-- Select ARI --</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
         </div>
-        <div>
-          <label>Duration (min)</label>
-          <input id="durationMin" type="number" step="1" value="30" />
-        </div>
-      </div>
 
-      <details>
-        <summary>IDF constants (i = K · ARI^x / (A + t)^n)</summary>
-        <div class="row four">
-          <div>
-            <label>K</label>
-            <input id="idfK" type="number" step="0.001" value="61.967" />
-          </div>
-          <div>
-            <label>x</label>
-            <input id="idfX" type="number" step="0.001" value="0.145" />
-          </div>
-          <div>
-            <label>A (hours)</label>
-            <input id="idfA" type="number" step="0.001" value="0.500" />
-          </div>
-          <div>
-            <label>n</label>
-            <input id="idfN" type="number" step="0.001" value="0.818" />
-          </div>
+        <div class="row" style="margin-bottom: 20px;">
+          <label>Duration (minutes/hours)</label>
+          <select id="durationMin" style="width: 100%;">
+            <option value="">-- Select Duration --</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="60">60 minutes</option>
+            <option value="180">180 minutes</option>
+            <option value="360">6 hours</option>
+            <option value="720">12 hours</option>
+            <option value="1440">24 hours</option>
+          </select>
         </div>
-        <p class="hint">t = duration in hours (min ÷ 60)</p>
-      </details>
-    </section>
 
-    <section class="card">
-      <h2>Losses & Areas</h2>
-      <div class="row two">
-        <div>
-          <label>Pervious area (%)</label>
-          <input id="perviousPct" type="number" step="1" value="40" />
-        </div>
-        <div>
-          <label>Impervious area (%)</label>
-          <input id="imperviousPct" type="number" step="1" value="60" />
-        </div>
-      </div>
-
-      <div class="row two">
-        <div class="box">
-          <h3>Pervious</h3>
+        <details style="margin-bottom: 16px;">
+          <summary style="cursor: pointer; color: var(--accent); font-size: 0.9rem;">
+            IDF Coefficients (λ, κ, θ, η)
+          </summary>
+          <div class="row two" style="margin-top: 10px;">
+            <div>
+              <label>λ</label>
+              <input id="idfK" type="number" step="0.001" value="0" />
+            </div>
+            <div>
+              <label>κ</label>
+              <input id="idfX" type="number" step="0.001" value="0" />
+            </div>
+          </div>
           <div class="row two">
             <div>
-              <label>Initial loss (mm)</label>
-              <input id="pervInitLoss" type="number" step="0.1" value="10" />
+              <label>θ</label>
+              <input id="idfA" type="number" step="0.001" value="0" />
             </div>
             <div>
-              <label>Continuous loss (mm/hr)</label>
-              <input id="pervContLoss" type="number" step="0.1" value="0" />
+              <label>η</label>
+              <input id="idfN" type="number" step="0.001" value="0" />
             </div>
           </div>
-        </div>
-        <div class="box">
-          <h3>Impervious</h3>
-          <div class="row two">
-            <div>
-              <label>Initial loss (mm)</label>
-              <input id="impervInitLoss" type="number" step="0.1" value="1.5" />
-            </div>
-            <div>
-              <label>Continuous loss (mm/hr)</label>
-              <input id="impervContLoss" type="number" step="0.1" value="0" />
-            </div>
-          </div>
-        </div>
-      </div>
-      <p class="hint">Total area weighting is applied: loss = (perv%×pervLoss + imperv%×impervLoss)/100 per time-step.</p>
-    </section>
+        </details>
 
-    <section class="card">
-      <h2>Temporal Pattern (30 min)</h2>
-      <p class="hint">Normalized fractions for 6×5-min bins (Appendix 2.C5 from your sheet). Must sum ≈ 1.000.</p>
-      <div id="patternGrid" class="row six"></div>
-    </section>
+        <!-- Design Rainfall Intensity - Full Width Box -->
+        <div
+          style="margin-top: 16px; padding: 14px 16px; background: #0e1520; border-radius: 12px; border: 2px solid var(--accent);">
+          <label
+            style="color: var(--accent); font-weight: 600; font-size: 0.95rem; display: block; margin-bottom: 8px;">
+            Design Rainfall Intensity, 𝑖 (mm/hr)
+          </label>
+          <div id="designIntensity" style="font-size: 1.8rem; font-weight: 700; color: var(--ok); text-align: center;">-
+          </div>
+        </div>
+
+        <div
+          style="margin-top: 12px; padding: 14px 16px; background: #0e1520; border-radius: 12px; border: 2px solid var(--accent);">
+          <label
+            style="color: var(--accent); font-weight: 600; font-size: 0.95rem; display: block; margin-bottom: 8px;">
+            Total Design Rainfall, 𝑃 (mm)
+          </label>
+          <div id="totalDepthBox" style="font-size: 1.8rem; font-weight: 700; color: var(--ok); text-align: center;">-
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Two stacked sections -->
+      <div style="display: grid; gap: 20px;">
+
+        <!-- Rainfall Temporal Pattern Section -->
+        <section class="card">
+          <h2>Rainfall Temporal Pattern</h2>
+
+          <!-- First Section: Normalized -->
+          <label class="pattern-label">Normalized Design Rainfall Temporal Pattern</label>
+          <div id="patternGrid" class="row six"></div>
+
+          <hr style="border: 0; border-top: 1px solid #1a2433; margin: 20px 0;">
+
+          <!-- Second Section: Depth (mm) -->
+          <label class="pattern-label">Rainfall Temporal Pattern (mm)</label>
+          <div id="depthGrid" class="row six"></div>
+        </section>
+
+        <!-- Rainfall Excess (Runoff) Section -->
+        <section class="card">
+          <h2>Rainfall Excess (Runoff)</h2>
+
+          <!-- Losses Input Section - IMPROVED -->
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 1rem; color: var(--accent); margin-bottom: 16px;">Catchment Characteristics</h3>
+
+            <!-- Area Distribution with Visual Slider -->
+            <div
+              style="background: #0e1520; padding: 16px; border-radius: 12px; border: 1px solid #26344a; margin-bottom: 20px;">
+              <label style="font-weight: 600; margin-bottom: 12px; display: block;">Area Distribution (%)</label>
+
+              <!-- Visual Bar -->
+              <div
+                style="display: flex; height: 40px; border-radius: 8px; overflow: hidden; margin-bottom: 12px; border: 1px solid #26344a;">
+                <div id="pervBar"
+                  style="background: linear-gradient(135deg, #4ea8ff, #2d7dd2); transition: all 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem;">
+                  <span id="pervBarText">40%</span>
+                </div>
+                <div id="impervBar"
+                  style="background: linear-gradient(135deg, #7f8ea3, #5a6678); transition: all 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.9rem;">
+                  <span id="impervBarText">60%</span>
+                </div>
+              </div>
+
+              <!-- Input Fields -->
+              <div class="row two">
+                <div>
+                  <label style="color: #4ea8ff;">Pervious Area (%)</label>
+                  <input id="perviousArea" type="number" step="1" value="40" min="0" max="100"
+                    oninput="updatePerviousArea()" />
+                </div>
+                <div>
+                  <label style="color: #7f8ea3;">Impervious Area (%)</label>
+                  <input id="imperviousArea" type="number" step="1" value="60" min="0" max="100"
+                    oninput="updateImperviousArea()" />
+                </div>
+              </div>
+
+              <p class="hint" style="margin-top: 8px; margin-bottom: 0;">Areas must sum to 100%</p>
+            </div>
+
+            <!-- Soil Type Selection & Losses -->
+            <div class="row two">
+
+              <!-- Pervious Area Settings -->
+              <div class="box"
+                style="background: linear-gradient(to bottom, rgba(78, 168, 255, 0.05), transparent); border-color: rgba(78, 168, 255, 0.3);">
+                <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; color: #4ea8ff; display: flex; align-items: center;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    style="margin-right: 6px;">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" stroke-width="2" />
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke-width="2" />
+                  </svg>
+                  Pervious Surface
+                </h4>
+
+                <div style="margin-bottom: 12px;">
+                  <label>Soil Type</label>
+                  <select id="soilType" onchange="updateSoilLosses()" style="width: 100%;">
+                    <option value="sandy">Sandy Soil</option>
+                    <option value="loam" selected>Loam Soil</option>
+                    <option value="clay">Clay Soil</option>
+                  </select>
+                </div>
+
+                <div class="row two">
+                  <div>
+                    <label>Initial loss (mm)</label>
+                    <input id="pervInitialLoss" type="number" step="0.1" value="10.0" />
+                  </div>
+                  <div>
+                    <label>Continuous loss (mm/hr)</label>
+                    <input id="pervContinuousLoss" type="number" step="0.1" value="3.0" />
+                  </div>
+                </div>
+
+                <div
+                  style="margin-top: 10px; padding: 8px; background: rgba(78, 168, 255, 0.1); border-radius: 6px; font-size: 0.85rem;">
+                  <strong>Soil Properties:</strong>
+                  <div id="soilDescription" style="color: var(--muted); margin-top: 4px;">
+                    Moderate infiltration rate
+                  </div>
+                </div>
+              </div>
+
+              <!-- Impervious Area Settings -->
+              <div class="box"
+                style="background: linear-gradient(to bottom, rgba(127, 142, 163, 0.05), transparent); border-color: rgba(127, 142, 163, 0.3);">
+                <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; color: #7f8ea3; display: flex; align-items: center;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    style="margin-right: 6px;">
+                    <rect x="3" y="3" width="18" height="18" stroke-width="2" />
+                    <path d="M3 9h18M9 3v18" stroke-width="2" />
+                  </svg>
+                  Impervious Surface
+                </h4>
+
+                <div style="margin-bottom: 12px;">
+                  <label>Surface Type</label>
+                  <select id="impervType" onchange="updateImpervLosses()" style="width: 100%;">
+                    <option value="concrete" selected>Concrete/Asphalt</option>
+                    <option value="roof">Roof</option>
+                    <option value="compacted">Compacted Soil</option>
+                  </select>
+                </div>
+
+                <div class="row two">
+                  <div>
+                    <label>Initial loss (mm)</label>
+                    <input id="impInitialLoss" type="number" step="0.1" value="1.5" />
+                  </div>
+                  <div>
+                    <label>Continuous loss (mm/hr)</label>
+                    <input id="impContinuousLoss" type="number" step="0.1" value="0.0" />
+                  </div>
+                </div>
+
+                <div
+                  style="margin-top: 10px; padding: 8px; background: rgba(127, 142, 163, 0.1); border-radius: 6px; font-size: 0.85rem;">
+                  <strong>Surface Properties:</strong>
+                  <div id="impervDescription" style="color: var(--muted); margin-top: 4px;">
+                    Minimal infiltration
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Losses Calculation Table -->
+          <div style="margin-top: 20px;">
+            <label class="pattern-label">Losses & Excess Rainfall (mm)</label>
+            <div class="tableWrap">
+              <table id="lossesTable">
+                <thead>
+                  <tr>
+                    <th>Time (min)</th>
+                    <th>Rainfall (mm)</th>
+                    <th>Pervious<br>Initial</th>
+                    <th>Pervious<br>Continuous</th>
+                    <th>Imperv.<br>Initial</th>
+                    <th>Imperv.<br>Continuous</th>
+                    <th>Total Loss</th>
+                    <th>Excess (mm)</th>
+                  </tr>
+                </thead>
+                <tbody id="lossesTableBody">
+                  <!-- Will be populated by JavaScript -->
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th>Total</th>
+                    <th id="totalRainfall">–</th>
+                    <th>–</th>
+                    <th>–</th>
+                    <th>–</th>
+                    <th>–</th>
+                    <th id="totalLoss">–</th>
+                    <th id="totalExcess">–</th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <p class="hint" style="margin-top: 12px;">
+          Total loss = (Pervious% × PervLoss + Impervious% × ImpervLoss) / 100 per time bin
+        </p>
+
+        <!-- Rainfall Excess Table -->
+        <h3 style="font-size: 1rem; color: var(--accent); margin: 20px 0 12px 0;">Rainfall Excess (Runoff)</h3>
+        <div class="tableWrap">
+          <table id="excessTable">
+            <thead>
+              <tr>
+                <th>Time Bin</th>
+                <th>Rainfall (mm)</th>
+                <th>Loss (mm)</th>
+                <th>Excess (mm)</th>
+                <th>Excess (mm/s)</th>
+              </tr>
+            </thead>
+            <tbody id="excessTableBody">
+              <!-- Will be populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+        </section>
+
+      </div>
+
+    </div>
   </main>
 
   <section class="container actions">
@@ -150,5 +379,793 @@
   </footer>
 
   <script src="app.js"></script>
+
+  <script>
+    const stationData = {
+      "Johor": [
+        { id: "1437116", name: "Stor JPS Johor Bahru", lambda: 59.972, kappa: 0.163, theta: 0.121, eta: 0.793 },
+        { id: "1534002", name: "Pusat Kem. Pekan Nenas", lambda: 54.265, kappa: 0.179, theta: 0.100, eta: 0.756 },
+        { id: "1541139", name: "Johor Silica", lambda: 59.060, kappa: 0.202, theta: 0.128, eta: 0.660 },
+        { id: "1636001", name: "Balai Polis Kg Seelong", lambda: 50.115, kappa: 0.191, theta: 0.099, eta: 0.763 },
+        { id: "1737001", name: "SM Bukit Besar", lambda: 50.554, kappa: 0.193, theta: 0.117, eta: 0.722 },
+        { id: "1829002", name: "Setor JPS Batu Pahat", lambda: 64.099, kappa: 0.174, theta: 0.201, eta: 0.826 },
+        { id: "1834124", name: "Ladang Ulu Remis", lambda: 55.864, kappa: 0.166, theta: 0.174, eta: 0.810 },
+        { id: "1839196", name: "Simpang Masai K. Sedili", lambda: 61.562, kappa: 0.191, theta: 0.103, eta: 0.701 },
+        { id: "1931003", name: "Emp. Semberong", lambda: 60.568, kappa: 0.163, theta: 0.159, eta: 0.821 },
+        { id: "2025001", name: "Pintu Kaw. Tg. Agas", lambda: 80.936, kappa: 0.187, theta: 0.258, eta: 0.890 },
+        { id: "2033001", name: "JPS Kluang", lambda: 54.428, kappa: 0.192, theta: 0.108, eta: 0.740 },
+        { id: "2231001", name: "Ladang Chan Wing", lambda: 57.188, kappa: 0.186, theta: 0.093, eta: 0.777 },
+        { id: "2232001", name: "Ladang Kekayaan", lambda: 53.457, kappa: 0.180, theta: 0.094, eta: 0.735 },
+        { id: "2235163", name: "Ibu Bekalan Kahang", lambda: 52.177, kappa: 0.186, theta: 0.055, eta: 0.652 },
+        { id: "2237164", name: "Jalan Kluang-Mersing", lambda: 56.966, kappa: 0.190, theta: 0.144, eta: 0.637 },
+        { id: "2330009", name: "Ladang Labis", lambda: 45.808, kappa: 0.222, theta: 0.012, eta: 0.713 },
+        { id: "2528012", name: "Rmh. Tapis Segamat", lambda: 45.212, kappa: 0.224, theta: 0.039, eta: 0.711 },
+        { id: "2534160", name: "Kg Peta Hulu Sg Endau", lambda: 59.500, kappa: 0.185, theta: 0.129, eta: 0.623 },
+        { id: "2636170", name: "Setor JPS Endau", lambda: 62.040, kappa: 0.215, theta: 0.103, eta: 0.592 }
+      ],
+
+      "Kedah": [
+        { id: "5507076", name: "Bt. 27, Jalan Baling", lambda: 52.398, kappa: 0.172, theta: 0.104, eta: 0.788 },
+        { id: "5704055", name: "Kedah Peak", lambda: 81.579, kappa: 0.200, theta: 0.437, eta: 0.719 },
+        { id: "5806066", name: "Klinik Jeniang", lambda: 59.786, kappa: 0.165, theta: 0.203, eta: 0.791 },
+        { id: "5808001", name: "Bt. 61, Jalang Baling", lambda: 47.496, kappa: 0.183, theta: 0.079, eta: 0.752 },
+        { id: "6103047", name: "Setor JPS Alor Setar", lambda: 64.832, kappa: 0.168, theta: 0.346, eta: 0.800 },
+        { id: "6108001", name: "Kompleks Rumah Muda", lambda: 52.341, kappa: 0.173, theta: 0.120, eta: 0.792 },
+        { id: "6206035", name: "Kuala Nerang", lambda: 54.849, kappa: 0.174, theta: 0.250, eta: 0.810 },
+        { id: "6107032", name: "AmpangPadu", lambda: 66.103, kappa: 0.177, theta: 0.284, eta: 0.842 },
+        { id: "6306031", name: "Padang Senai", lambda: 60.331, kappa: 0.193, theta: 0.249, eta: 0.829 }
+      ],
+
+      "Kelantan": [
+        { id: "4614001", name: "Brook", lambda: 49.623, kappa: 0.159, theta: 0.242, eta: 0.795 },
+        { id: "4726001", name: "Gunung Gagau", lambda: 43.024, kappa: 0.220, theta: 0.004, eta: 0.527 },
+        { id: "4819027", name: "Gua Musang", lambda: 57.132, kappa: 0.155, theta: 0.119, eta: 0.795 },
+        { id: "4915001", name: "Chabai", lambda: 47.932, kappa: 0.169, theta: 0.108, eta: 0.794 },
+        { id: "4923001", name: "Kg Aring", lambda: 47.620, kappa: 0.187, theta: 0.020, eta: 0.637 },
+        { id: "5120025", name: "Balai Polis Bertam", lambda: 61.338, kappa: 0.168, theta: 0.193, eta: 0.811 },
+        { id: "5216001", name: "Gob", lambda: 41.783, kappa: 0.175, theta: 0.122, eta: 0.720 },
+        { id: "5320038", name: "Dabong", lambda: 51.442, kappa: 0.189, theta: 0.077, eta: 0.710 },
+        { id: "5322044", name: "Kg Lalok", lambda: 53.766, kappa: 0.197, theta: 0.121, eta: 0.705 },
+        { id: "5522047", name: "JPS Kuala Krai", lambda: 39.669, kappa: 0.231, theta: 0.000, eta: 0.563 },
+        { id: "5718033", name: "Kg Jeli, Tanah Merah", lambda: 72.173, kappa: 0.196, theta: 0.360, eta: 0.703 },
+        { id: "5719001", name: "Kg Durian Daun Lawang", lambda: 51.161, kappa: 0.193, theta: 0.063, eta: 0.745 },
+        { id: "5722057", name: "JPS Machang", lambda: 48.433, kappa: 0.219, theta: 0.000, eta: 0.601 },
+        { id: "5824079", name: "Sg Rasau Pasir Putih", lambda: 51.919, kappa: 0.216, theta: 0.062, eta: 0.560 },
+        { id: "6019004", name: "Rumah Kastam Rantau Pjg", lambda: 49.315, kappa: 0.228, theta: 0.000, eta: 0.609 },
+        { id: "6122064", name: "Setor JPS Kota Bharu", lambda: 60.988, kappa: 0.214, theta: 0.148, eta: 0.616 }
+      ],
+
+      "Kuala Lumpur": [
+        { id: "3015001", name: "Puchong Drop, K Lumpur", lambda: 69.650, kappa: 0.151, theta: 0.223, eta: 0.880 },
+        { id: "3116003", name: "Ibu Pejabat JPS", lambda: 61.976, kappa: 0.145, theta: 0.122, eta: 0.818 },
+        { id: "3116004", name: "Ibu Pejabat JPS1", lambda: 64.689, kappa: 0.149, theta: 0.174, eta: 0.837 },
+        { id: "3116005", name: "SK Taman Maluri", lambda: 62.765, kappa: 0.132, theta: 0.147, eta: 0.820 },
+        { id: "3116006", name: "Ladang Edinburgh", lambda: 63.483, kappa: 0.146, theta: 0.210, eta: 0.830 },
+        { id: "3216001", name: "Kg. Sungai Tua", lambda: 64.203, kappa: 0.152, theta: 0.250, eta: 0.844 },
+        { id: "3216004", name: "SK Jenis Keb. Kepong", lambda: 73.602, kappa: 0.164, theta: 0.330, eta: 0.874 },
+        { id: "3217001", name: "Ibu Bek. KM16, Gombak", lambda: 66.328, kappa: 0.144, theta: 0.230, eta: 0.859 },
+        { id: "3217002", name: "Emp. Genting Kelang", lambda: 70.200, kappa: 0.165, theta: 0.290, eta: 0.854 },
+        { id: "3217003", name: "Ibu Bek. KM11, Gombak", lambda: 62.609, kappa: 0.152, theta: 0.221, eta: 0.804 },
+        { id: "3217004", name: "Kg. Kuala Seleh, H. Klg", lambda: 61.516, kappa: 0.139, theta: 0.183, eta: 0.837 },
+        { id: "3217005", name: "Kg. Kerdas, Gombak", lambda: 63.241, kappa: 0.162, theta: 0.137, eta: 0.856 },
+        { id: "3317001", name: "Air Terjun Sg. Batu", lambda: 72.992, kappa: 0.162, theta: 0.171, eta: 0.871 },
+        { id: "3317004", name: "Genting Sempah", lambda: 61.335, kappa: 0.157, theta: 0.292, eta: 0.868 }
+      ],
+      "Melaka": [
+        { id: "2222001", name: "Bukit Sebukor", lambda: 95.823, kappa: 0.169, theta: 0.660, eta: 0.947 },
+        { id: "2224038", name: "Chin Chin Tepi Jalan", lambda: 54.241, kappa: 0.161, theta: 0.114, eta: 0.846 },
+        { id: "2321006", name: "Ladang Lendu", lambda: 72.163, kappa: 0.184, theta: 0.376, eta: 0.900 }
+      ],
+
+      "Negeri Sembilan": [
+        { id: "2719001", name: "Setor JPS Sikamat", lambda: 52.823, kappa: 0.167, theta: 0.159, eta: 0.811 },
+        { id: "2722202", name: "Kg Sawah Lebar K Pilah", lambda: 44.811, kappa: 0.181, theta: 0.137, eta: 0.811 },
+        { id: "2723002", name: "Sungai Kepis", lambda: 54.400, kappa: 0.176, theta: 0.134, eta: 0.842 },
+        { id: "2725083", name: "Ladang New Rompin", lambda: 57.616, kappa: 0.191, theta: 0.224, eta: 0.817 },
+        { id: "2920012", name: "Petaling K Kelawang", lambda: 50.749, kappa: 0.173, theta: 0.235, eta: 0.854 }
+      ],
+
+      "Pahang": [
+        { id: "2630001", name: "Sungai Pukim", lambda: 46.577, kappa: 0.232, theta: 0.169, eta: 0.687 },
+        { id: "2634193", name: "Sungai Anak Endau", lambda: 66.179, kappa: 0.182, theta: 0.081, eta: 0.589 },
+        { id: "2828173", name: "Kg Gambir", lambda: 47.701, kappa: 0.182, theta: 0.096, eta: 0.715 },
+        { id: "3026156", name: "Pos Iskandar", lambda: 47.452, kappa: 0.184, theta: 0.071, eta: 0.780 },
+        { id: "3121143", name: "Simpang Pelangai", lambda: 57.109, kappa: 0.165, theta: 0.190, eta: 0.867 },
+        { id: "3134165", name: "Dispensari Nenasi", lambda: 61.697, kappa: 0.152, theta: 0.120, eta: 0.593 },
+        { id: "3231163", name: "Kg Unchang", lambda: 55.568, kappa: 0.179, theta: 0.096, eta: 0.649 },
+        { id: "3424081", name: "JPS Temerloh", lambda: 73.141, kappa: 0.173, theta: 0.577, eta: 0.896 },
+        { id: "3533102", name: "Rumah Pam Pahang Tua", lambda: 58.483, kappa: 0.212, theta: 0.197, eta: 0.586 },
+        { id: "3628001", name: "Pintu Kaw. Pulau Kertam", lambda: 50.024, kappa: 0.211, theta: 0.089, eta: 0.716 },
+        { id: "3818054", name: "Setor JPS Raub", lambda: 53.115, kappa: 0.168, theta: 0.191, eta: 0.833 },
+        { id: "3924072", name: "Rmh Pam Paya Kangsar", lambda: 62.301, kappa: 0.167, theta: 0.363, eta: 0.868 },
+        { id: "3930012", name: "Sungai Lembing PCC Mill", lambda: 45.999, kappa: 0.210, theta: 0.074, eta: 0.590 },
+        { id: "4023001", name: "Kg Sungai Yap", lambda: 65.914, kappa: 0.195, theta: 0.252, eta: 0.817 },
+        { id: "4127001", name: "Hulu Tekai Kwsn. 'B'", lambda: 59.861, kappa: 0.226, theta: 0.213, eta: 0.762 },
+        { id: "4219001", name: "Bukit Bentong", lambda: 73.676, kappa: 0.165, theta: 0.384, eta: 0.879 },
+        { id: "4223115", name: "Kg Merting", lambda: 52.731, kappa: 0.184, theta: 0.096, eta: 0.805 },
+        { id: "4513033", name: "Gunung Brinchang", lambda: 42.004, kappa: 0.164, theta: 0.046, eta: 0.802 }
+      ],
+
+      "Pulau Pinang": [
+        { id: "5204048", name: "Sg Simpang Ampat", lambda: 62.089, kappa: 0.220, theta: 0.402, eta: 0.785 },
+        { id: "5302001", name: "Tangki Air Besar Sg Pinang", lambda: 67.949, kappa: 0.181, theta: 0.299, eta: 0.736 },
+        { id: "5302003", name: "Kolam Tkgn Air Hitam", lambda: 52.459, kappa: 0.191, theta: 0.106, eta: 0.729 },
+        { id: "5303001", name: "Rmh Kebajikan P Pinang", lambda: 57.326, kappa: 0.203, theta: 0.325, eta: 0.791 },
+        { id: "5303053", name: "Komplek Prai", lambda: 52.771, kappa: 0.203, theta: 0.095, eta: 0.717 },
+        { id: "5402001", name: "Klinik Bkt Bendera P Pinang", lambda: 64.504, kappa: 0.196, theta: 0.149, eta: 0.723 },
+        { id: "5402002", name: "Kolam Bersih P Pinang", lambda: 53.785, kappa: 0.181, theta: 0.125, eta: 0.706 },
+        { id: "5404043", name: "Ibu Bekalan Sg Kulim", lambda: 57.832, kappa: 0.188, theta: 0.245, eta: 0.751 },
+        { id: "5504035", name: "Lahar Ikan Mati Kepala Batas", lambda: 48.415, kappa: 0.221, theta: 0.068, eta: 0.692 }
+      ],
+
+      "Perak": [
+        { id: "4010001", name: "JPS Teluk Intan", lambda: 54.017, kappa: 0.198, theta: 0.084, eta: 0.790 },
+        { id: "4207048", name: "JPS Setiawan", lambda: 56.121, kappa: 0.174, theta: 0.211, eta: 0.854 },
+        { id: "4311001", name: "Pejabat Daerah Kampar", lambda: 69.926, kappa: 0.148, theta: 0.149, eta: 0.813 },
+        { id: "4409091", name: "Rumah Pam Kubang Haji", lambda: 52.343, kappa: 0.164, theta: 0.177, eta: 0.840 },
+        { id: "4511111", name: "Politeknik Ungku Umar", lambda: 70.238, kappa: 0.164, theta: 0.288, eta: 0.872 },
+        { id: "4807016", name: "Bukit Larut Taiping", lambda: 87.236, kappa: 0.165, theta: 0.258, eta: 0.842 },
+        { id: "4811075", name: "Rancangan Belia Perlop", lambda: 58.234, kappa: 0.198, theta: 0.247, eta: 0.856 },
+        { id: "5005003", name: "Jln. Mtg. Buloh Bagan Serai", lambda: 52.752, kappa: 0.163, theta: 0.179, eta: 0.795 },
+        { id: "5207001", name: "Kolam Air JKR Selama", lambda: 59.567, kappa: 0.176, theta: 0.062, eta: 0.807 },
+        { id: "5210069", name: "Stesen Pem. Hutan Lawin", lambda: 52.803, kappa: 0.169, theta: 0.219, eta: 0.838 },
+        { id: "5411066", name: "Kuala Kenderong", lambda: 85.943, kappa: 0.223, theta: 0.248, eta: 0.909 },
+        { id: "5710061", name: "Dispensari Keroh", lambda: 53.116, kappa: 0.168, theta: 0.112, eta: 0.820 }
+      ],
+
+      "Perlis": [
+        { id: "6401002", name: "Padang Katong, Kangar", lambda: 57.645, kappa: 0.179, theta: 0.254, eta: 0.826 }
+      ],
+
+      "Selangor": [
+        { id: "2815001", name: "JPS Sungai Manggis", lambda: 56.052, kappa: 0.152, theta: 0.194, eta: 0.857 },
+        { id: "2913001", name: "Pusat Kwln. JPS T Gong", lambda: 63.493, kappa: 0.170, theta: 0.254, eta: 0.872 },
+        { id: "2917001", name: "Setor JPS Kajang", lambda: 59.153, kappa: 0.161, theta: 0.118, eta: 0.812 },
+        { id: "3117070", name: "JPS Ampang", lambda: 65.809, kappa: 0.148, theta: 0.156, eta: 0.837 },
+        { id: "3118102", name: "SK Sungai Lui", lambda: 63.155, kappa: 0.177, theta: 0.122, eta: 0.842 },
+        { id: "3314001", name: "Rumah Pam JPS P Setia", lambda: 62.273, kappa: 0.175, theta: 0.205, eta: 0.841 },
+        { id: "3411017", name: "Setor JPS Tj. Karang", lambda: 68.290, kappa: 0.175, theta: 0.243, eta: 0.894 },
+        { id: "3416002", name: "Kg Kalong Tengah", lambda: 61.811, kappa: 0.161, theta: 0.188, eta: 0.816 },
+        { id: "3516022", name: "Loji Air Kuala Kubu Baru", lambda: 67.793, kappa: 0.176, theta: 0.278, eta: 0.854 },
+        { id: "3710006", name: "Rmh Pam Bagan Terap", lambda: 60.793, kappa: 0.173, theta: 0.185, eta: 0.884 }
+      ],
+
+      "Terengganu": [
+        { id: "3933001", name: "Hulu Jabor, Kemaman", lambda: 103.519, kappa: 0.228, theta: 0.756, eta: 0.707 },
+        { id: "4131001", name: "Kg, Ban Ho, Kemaman", lambda: 65.158, kappa: 0.164, theta: 0.092, eta: 0.660 },
+        { id: "4234109", name: "JPS Kemaman", lambda: 55.899, kappa: 0.201, theta: 0.000, eta: 0.580 },
+        { id: "4332001", name: "Jambatan Tebak, Kem.", lambda: 61.703, kappa: 0.185, theta: 0.088, eta: 0.637 },
+        { id: "4529001", name: "Rmh Pam Paya Kempian", lambda: 53.693, kappa: 0.194, theta: 0.000, eta: 0.607 },
+        { id: "4529071", name: "SK Pasir Raja", lambda: 48.467, kappa: 0.207, theta: 0.000, eta: 0.600 },
+        { id: "4631001", name: "Almuktafibillah Shah", lambda: 66.029, kappa: 0.199, theta: 0.165, eta: 0.629 },
+        { id: "4734079", name: "SM Sultan Omar, Dungun", lambda: 51.935, kappa: 0.213, theta: 0.020, eta: 0.587 },
+        { id: "4832077", name: "SK Jerangau", lambda: 54.947, kappa: 0.212, theta: 0.026, eta: 0.555 },
+        { id: "4930038", name: "Kg Menerong, Hulu Trg", lambda: 60.436, kappa: 0.204, theta: 0.063, eta: 0.588 },
+        { id: "5029034", name: "Kg Dura, Hulu Trg", lambda: 60.510, kappa: 0.220, theta: 0.087, eta: 0.617 },
+        { id: "5128001", name: "Sungai Gawi, Hulu Trg", lambda: 48.101, kappa: 0.215, theta: 0.027, eta: 0.566 },
+        { id: "5226001", name: "Sg Petualang, Hulu Trg", lambda: 48.527, kappa: 0.228, theta: 0.000, eta: 0.547 },
+        { id: "5328044", name: "Sungai Tong, Setiu", lambda: 52.377, kappa: 0.188, theta: 0.003, eta: 0.558 },
+        { id: "5331048", name: "Setor JPS K Terengganu", lambda: 58.307, kappa: 0.210, theta: 0.123, eta: 0.555 },
+        { id: "5426001", name: "Kg Seladang, Hulu Setiu", lambda: 57.695, kappa: 0.197, theta: 0.000, eta: 0.544 },
+        { id: "5428001", name: "Kg Bt. Hampar, Setiu", lambda: 55.452, kappa: 0.186, theta: 0.000, eta: 0.545 },
+        { id: "5524002", name: "SK Panchor, Setiu Klinik", lambda: 53.430, kappa: 0.206, theta: 0.000, eta: 0.524 },
+        { id: "5725006", name: "Kg Raja, Besut", lambda: 52.521, kappa: 0.225, theta: 0.041, eta: 0.560 }
+      ]
+    };
+    function updateStations() {
+      const state = document.getElementById("state").value;
+      const stationSelect = document.getElementById("stationSelect");
+
+      // Clear old stations
+      stationSelect.innerHTML = '<option value="">-- Select Station --</option>';
+
+      if (state && stationData[state]) {
+        stationData[state].forEach(station => {
+          const option = document.createElement("option");
+          option.value = station.id;
+          option.text = `${station.id} – ${station.name}`;
+          option.dataset.lambda = station.lambda;
+          option.dataset.kappa = station.kappa;
+          option.dataset.theta = station.theta;
+          option.dataset.eta = station.eta;
+          stationSelect.appendChild(option);
+        });
+      }
+    }
+
+    function autofillConstants() {
+      const stationSelect = document.getElementById("stationSelect");
+      const selectedOption = stationSelect.options[stationSelect.selectedIndex];
+
+      if (selectedOption.value) {
+        // Get the data attributes from the selected option
+        const lambda = selectedOption.dataset.lambda;
+        const kappa = selectedOption.dataset.kappa;
+        const theta = selectedOption.dataset.theta;
+        const eta = selectedOption.dataset.eta;
+
+        // Fill in the IDF constant inputs
+        document.getElementById("idfK").value = lambda;
+        document.getElementById("idfX").value = kappa;
+        document.getElementById("idfA").value = theta;
+        document.getElementById("idfN").value = eta;
+      }
+    }
+
+    // Function to calculate Design Rainfall Intensity and Total Depth
+    function calculateDesignIntensity() {
+      const lambda = parseFloat(document.getElementById("idfK").value);
+      const kappa = parseFloat(document.getElementById("idfX").value);
+      const theta = parseFloat(document.getElementById("idfA").value);
+      const eta = parseFloat(document.getElementById("idfN").value);
+      const T = parseFloat(document.getElementById("ariYears").value);
+      const durationMin = parseFloat(document.getElementById("durationMin").value);
+      const d = durationMin / 60; // duration in hours
+
+      // Check if all values are valid
+      if (isFinite(lambda) && isFinite(kappa) && isFinite(theta) && isFinite(eta) && isFinite(T) && isFinite(d)) {
+        // 1. Calculate Intensity (i)
+        const i = (lambda * Math.pow(T, kappa)) / Math.pow(d + theta, eta);
+        document.getElementById("designIntensity").textContent = i.toFixed(3);
+
+        // 2. Calculate Total Depth (P = i * d)
+        const totalDepth = i * d;
+
+        // Update the new box below the intensity box
+        const depthBox = document.getElementById("totalDepthBox");
+        if (depthBox) {
+          depthBox.textContent = totalDepth.toFixed(3);
+        }
+      } else {
+        document.getElementById("designIntensity").textContent = "—";
+        if (document.getElementById("totalDepthBox")) {
+          document.getElementById("totalDepthBox").textContent = "—";
+        }
+      }
+    }
+
+    // Update autofillConstants to trigger calculation
+    function autofillConstants() {
+      const stationSelect = document.getElementById("stationSelect");
+      const selectedOption = stationSelect.options[stationSelect.selectedIndex];
+
+      if (selectedOption.value) {
+        const lambda = selectedOption.dataset.lambda;
+        const kappa = selectedOption.dataset.kappa;
+        const theta = selectedOption.dataset.theta;
+        const eta = selectedOption.dataset.eta;
+
+        document.getElementById("idfK").value = lambda;
+        document.getElementById("idfX").value = kappa;
+        document.getElementById("idfA").value = theta;
+        document.getElementById("idfN").value = eta;
+
+        // Automatically calculate after autofill
+        calculateDesignIntensity();
+      }
+    }
+
+    // Add event listeners for ARI and Duration changes
+    document.getElementById("ariYears").addEventListener("change", calculateDesignIntensity);
+    document.getElementById("durationMin").addEventListener("change", calculateDesignIntensity);
+
+    // Regional mapping for temporal patterns
+    const stateToRegion = {
+      "Terengganu": "Region1",
+      "Kelantan": "Region1",
+      "Johor": "Region2",
+      "Negeri Sembilan": "Region2",
+      "Melaka": "Region2",
+      "Selangor": "Region2",
+      "Pahang": "Region2",
+      "Perak": "Region3",
+      "Kedah": "Region3",
+      "Pulau Pinang": "Region3",
+      "Perlis": "Region3",
+      "Kuala Lumpur": "Region5"
+    };
+
+    // Temporal Pattern Data
+    const temporalPatterns = {
+      "Region1": {
+        "5": [0.316, 0.368, 0.316],  // 15-min (3 blocks × 5-min)
+        "10": [0.133, 0.193, 0.211, 0.202, 0.161, 0.1], // 30-min (6 blocks × 5-min)
+        "15": [0.06, 0.062, 0.084, 0.087, 0.097, 0.12, 0.115, 0.091, 0.087, 0.082, 0.061, 0.054], // 60-min (12 blocks × 5-min)
+        "30": [0.06, 0.061, 0.071, 0.08, 0.11, 0.132, 0.12, 0.1, 0.078, 0.069, 0.06, 0.059], // 180-min (12 blocks × 15-min)
+        "60": [0.059, 0.067, 0.071, 0.082, 0.119, 0.13, 0.123, 0.086, 0.073, 0.069, 0.063, 0.057], // 6-hr (12 blocks × 30-min)
+        "120": [0.07, 0.073, 0.083, 0.084, 0.097, 0.106, 0.099, 0.086, 0.084, 0.083, 0.07, 0.064, 0.058, 0.057, 0.05, 0.05, 0.048, 0.046, 0.043, 0.039, 0.028, 0.025, 0.022, 0.016], // 12-hr (24 blocks × 30-min)
+        "180": [0.019, 0.022, 0.027, 0.036, 0.042, 0.044, 0.048, 0.049, 0.05, 0.056, 0.058, 0.068, 0.06, 0.059, 0.053, 0.048, 0.046, 0.044, 0.038, 0.034, 0.03, 0.029, 0.028, 0.019], // 24-hr (24 blocks × 60-min)
+        "360": [0.027, 0.028, 0.029, 0.033, 0.037, 0.04, 0.046, 0.048, 0.049, 0.054, 0.058, 0.065, 0.055, 0.054, 0.053, 0.048, 0.044, 0.038, 0.034, 0.03, 0.029, 0.028, 0.019, 0.02], // 48-hr
+        "540": [0.021, 0.029, 0.03, 0.033, 0.037, 0.038, 0.042, 0.048, 0.053, 0.055, 0.058, 0.067, 0.058, 0.056, 0.053, 0.052, 0.047, 0.041, 0.038, 0.036, 0.033, 0.03, 0.022, 0.02] // 72-hr
+      },
+
+      "Region2": {
+        "5": [0.255, 0.376, 0.37],
+        "10": [0.124, 0.13, 0.365, 0.152, 0.126, 0.103],
+        "15": [0.053, 0.059, 0.063, 0.087, 0.103, 0.153, 0.11, 0.088, 0.069, 0.06, 0.057, 0.046],
+        "30": [0.053, 0.061, 0.063, 0.08, 0.128, 0.151, 0.129, 0.097, 0.079, 0.062, 0.054, 0.042],
+        "60": [0.044, 0.081, 0.083, 0.09, 0.106, 0.115, 0.114, 0.09, 0.085, 0.081, 0.074, 0.037],
+        "120": [0.045, 0.048, 0.064, 0.106, 0.124, 0.146, 0.127, 0.116, 0.081, 0.056, 0.046, 0.041, 0.083, 0.057, 0.052, 0.047, 0.04, 0.039, 0.033, 0.031, 0.029, 0.028, 0.024, 0.02],
+        "180": [0.022, 0.024, 0.029, 0.031, 0.032, 0.035, 0.039, 0.042, 0.05, 0.054, 0.065, 0.093, 0.06, 0.055, 0.053, 0.048, 0.046, 0.044, 0.038, 0.034, 0.03, 0.029, 0.028, 0.019],
+        "360": [0.027, 0.028, 0.029, 0.033, 0.037, 0.04, 0.046, 0.048, 0.049, 0.054, 0.058, 0.065, 0.06, 0.054, 0.053, 0.048, 0.046, 0.044, 0.038, 0.034, 0.03, 0.029, 0.028, 0.016],
+        "540": [0.016, 0.023, 0.027, 0.033, 0.036, 0.043, 0.047, 0.049, 0.049, 0.051, 0.067, 0.079, 0.068, 0.057, 0.05, 0.049, 0.048, 0.043, 0.038, 0.035, 0.03, 0.024, 0.022, 0.016]
+      },
+
+      "Region3": {
+        "5": [0.215, 0.395, 0.39],
+        "10": [0.158, 0.161, 0.21, 0.173, 0.158, 0.141],
+        "15": [0.068, 0.074, 0.077, 0.087, 0.099, 0.106, 0.104, 0.098, 0.078, 0.075, 0.072, 0.064],
+        "30": [0.06, 0.085, 0.086, 0.087, 0.1, 0.1, 0.1, 0.088, 0.087, 0.085, 0.063, 0.059],
+        "60": [0.045, 0.07, 0.078, 0.099, 0.113, 0.129, 0.121, 0.099, 0.081, 0.076, 0.047, 0.041],
+        "120": [0.04, 0.06, 0.066, 0.092, 0.114, 0.166, 0.119, 0.113, 0.081, 0.066, 0.046, 0.036, 0.076, 0.055, 0.048, 0.044, 0.041, 0.039, 0.036, 0.034, 0.033, 0.032, 0.031, 0.023],
+        "180": [0.027, 0.031, 0.033, 0.034, 0.035, 0.036, 0.039, 0.042, 0.044, 0.053, 0.056, 0.08, 0.073, 0.06, 0.056, 0.046, 0.045, 0.044, 0.039, 0.035, 0.028, 0.021, 0.017, 0.014],
+        "360": [0.015, 0.02, 0.026, 0.028, 0.038, 0.039, 0.045, 0.046, 0.052, 0.057, 0.069, 0.086, 0.073, 0.057, 0.046, 0.045, 0.044, 0.039, 0.035, 0.026, 0.025, 0.024, 0.022, 0.008],
+        "540": [0.021, 0.023, 0.024, 0.025, 0.028, 0.031, 0.044, 0.049, 0.058, 0.063, 0.074, 0.081, 0.078, 0.07, 0.058, 0.05, 0.044, 0.044, 0.03, 0.026, 0.025, 0.024, 0.022, 0.008]
+      },
+
+      "Region4": {
+        "5": [0.146, 0.677, 0.177],
+        "10": [0.117, 0.13, 0.374, 0.152, 0.121, 0.107],
+        "15": [0.028, 0.052, 0.064, 0.073, 0.106, 0.28, 0.119, 0.079, 0.066, 0.058, 0.042, 0.028],
+        "30": [0.019, 0.019, 0.055, 0.098, 0.164, 0.197, 0.169, 0.132, 0.095, 0.027, 0.019, 0.006],
+        "60": [0.019, 0.04, 0.045, 0.06, 0.082, 0.39, 0.171, 0.062, 0.054, 0.041, 0.02, 0.016],
+        "120": [0.041, 0.052, 0.056, 0.059, 0.12, 0.253, 0.157, 0.065, 0.058, 0.052, 0.048, 0.038, 0.142, 0.06, 0.05, 0.048, 0.034, 0.027, 0.026, 0.023, 0.008, 0.007, 0.001, 0],
+        "180": [0, 0.002, 0.007, 0.009, 0.023, 0.026, 0.027, 0.04, 0.049, 0.055, 0.112, 0.227, 0.081, 0.066, 0.057, 0.047, 0.037, 0.036, 0.031, 0.026, 0.018, 0.007, 0.003, 0],
+        "360": [0.002, 0.007, 0.018, 0.024, 0.027, 0.033, 0.037, 0.043, 0.053, 0.062, 0.08, 0.204, 0.204, 0.066, 0.057, 0.047, 0.037, 0.036, 0.031, 0.026, 0.018, 0.009, 0.005, 0],
+        "540": [0.005, 0.006, 0.011, 0.014, 0.018, 0.027, 0.028, 0.035, 0.056, 0.065, 0.116, 0.171, 0.127, 0.096, 0.06, 0.039, 0.034, 0.028, 0.023, 0.016, 0.011, 0.009, 0.005, 0]
+      },
+
+      "Region5": {
+        "5": [0.184, 0.448, 0.368],
+        "10": [0.097, 0.161, 0.4, 0.164, 0.106, 0.072],
+        "15": [0.056, 0.061, 0.065, 0.096, 0.106, 0.164, 0.108, 0.103, 0.068, 0.065, 0.058, 0.05],
+        "30": [0.048, 0.06, 0.078, 0.095, 0.097, 0.175, 0.116, 0.096, 0.093, 0.062, 0.05, 0.03],
+        "60": [0.033, 0.045, 0.092, 0.096, 0.107, 0.161, 0.118, 0.102, 0.096, 0.091, 0.037, 0.023],
+        "120": [0.003, 0.051, 0.074, 0.086, 0.14, 0.206, 0.18, 0.107, 0.081, 0.064, 0.007, 0.003, 0.091, 0.08, 0.075, 0.054, 0.048, 0.035, 0.027, 0.023, 0.017, 0.012, 0.009, 0.002],
+        "180": [0.003, 0.011, 0.015, 0.021, 0.025, 0.032, 0.047, 0.052, 0.055, 0.076, 0.087, 0.103, 0.132, 0.096, 0.053, 0.036, 0.033, 0.03, 0.026, 0.02, 0.017, 0.012, 0.004, 0.001],
+        "360": [0.001, 0.011, 0.015, 0.018, 0.024, 0.027, 0.031, 0.033, 0.041, 0.068, 0.129, 0.142, 0.132, 0.096, 0.053, 0.033, 0.03, 0.026, 0.02, 0.017, 0.012, 0.004, 0.001, 0.001],
+        "540": [0.006, 0.014, 0.019, 0.023, 0.027, 0.04, 0.049, 0.05, 0.054, 0.067, 0.072, 0.11, 0.087, 0.07, 0.06, 0.052, 0.05, 0.047, 0.031, 0.025, 0.022, 0.014, 0.009, 0.003]
+      }
+    };
+
+    // Function to update the Depth grid (mm)
+    function updateDepthPattern() {
+      const totalDepthBox = document.getElementById("totalDepthBox");
+      const totalDepth = parseFloat(totalDepthBox.textContent);
+      const depthGrid = document.getElementById("depthGrid");
+
+      // Get all normalized pattern values
+      const patternCells = document.querySelectorAll("#patternGrid .patternCell");
+
+      // If total depth is not available or pattern is empty, show dashes
+      if (!isFinite(totalDepth) || patternCells.length === 0) {
+        depthGrid.innerHTML = "";
+
+        // Get the time labels from normalized pattern if they exist
+        const patternLabels = document.querySelectorAll("#patternGrid div label");
+
+        if (patternLabels.length > 0) {
+          // Use the same time labels as normalized pattern
+          patternLabels.forEach((label) => {
+            const wrap = document.createElement("div");
+            wrap.innerHTML = `
+          <label>${label.textContent}</label>
+          <input class="depthCell" type="text" value="---" readonly style="text-align:center; color:var(--muted);" />
+        `;
+            depthGrid.appendChild(wrap);
+          });
+        } else {
+          // Default placeholder when no pattern exists yet
+          for (let i = 0; i < 6; i++) {
+            const wrap = document.createElement("div");
+            wrap.innerHTML = `
+          <label>${i * 5}-${(i + 1) * 5} min</label>
+          <input class="depthCell" type="text" value="---" readonly style="text-align:center; color:var(--muted);" />
+        `;
+            depthGrid.appendChild(wrap);
+          }
+        }
+
+        // Match the grid layout class
+        depthGrid.className = document.getElementById("patternGrid").className;
+        return;
+      }
+
+      // Calculate depth = normalized × total depth
+      depthGrid.innerHTML = "";
+      patternCells.forEach((cell, i) => {
+        const normalizedValue = parseFloat(cell.value);
+        const depthValue = normalizedValue * totalDepth;
+
+        // Get the time label from the corresponding normalized pattern box
+        const timeLabel = cell.parentElement.querySelector("label").textContent;
+
+        const wrap = document.createElement("div");
+        wrap.innerHTML = `
+      <label>${timeLabel}</label>
+      <input class="depthCell depth-box" type="text" value="${depthValue.toFixed(3)}" readonly style="text-align:center;" />
+    `;
+        depthGrid.appendChild(wrap);
+      });
+
+      // Match the grid layout class
+      depthGrid.className = document.getElementById("patternGrid").className;
+
+      // NEW LINE: Trigger losses calculation
+      calculateLossesTable();
+    }
+
+    // Update the calculateDesignIntensity function to also update depth pattern
+    function calculateDesignIntensity() {
+      const lambda = parseFloat(document.getElementById("idfK").value);
+      const kappa = parseFloat(document.getElementById("idfX").value);
+      const theta = parseFloat(document.getElementById("idfA").value);
+      const eta = parseFloat(document.getElementById("idfN").value);
+      const T = parseFloat(document.getElementById("ariYears").value);
+      const durationMin = parseFloat(document.getElementById("durationMin").value);
+      const d = durationMin / 60;
+
+      if (isFinite(lambda) && isFinite(kappa) && isFinite(theta) && isFinite(eta) && isFinite(T) && isFinite(d)) {
+        const i = (lambda * Math.pow(T, kappa)) / Math.pow(d + theta, eta);
+        document.getElementById("designIntensity").textContent = i.toFixed(3);
+
+        const totalDepth = i * d;
+        const depthBox = document.getElementById("totalDepthBox");
+        if (depthBox) {
+          depthBox.textContent = totalDepth.toFixed(3);
+        }
+
+        // Update the depth pattern grid
+        updateDepthPattern();
+      } else {
+        document.getElementById("designIntensity").textContent = "—";
+        if (document.getElementById("totalDepthBox")) {
+          document.getElementById("totalDepthBox").textContent = "—";
+        }
+        updateDepthPattern(); // This will show dashes
+      }
+    }
+
+    // Modify updateTemporalPattern to also trigger depth pattern update
+    function updateTemporalPattern() {
+      const state = document.getElementById("state").value;
+      const durationSelect = document.getElementById("durationMin");
+      const durationMin = parseFloat(durationSelect.value);
+      const grid = document.getElementById("patternGrid");
+
+      if (!state || !durationMin) {
+        const existingCells = document.querySelectorAll(".patternCell");
+        if (existingCells.length > 0) {
+          existingCells.forEach(cell => {
+            cell.type = "text";
+            cell.value = "---";
+          });
+        } else {
+          grid.innerHTML = "";
+          for (let i = 0; i < 6; i++) {
+            const wrap = document.createElement("div");
+            wrap.innerHTML = `
+          <label>Time bin</label>
+          <input class="patternCell" type="text" value="---" readonly style="text-align:center; color:var(--muted);" />
+        `;
+            grid.appendChild(wrap);
+          }
+        }
+        updateDepthPattern(); // Update depth grid with dashes
+        return;
+      }
+
+      const region = stateToRegion[state];
+      let durationKey;
+      if (durationMin === 15) durationKey = "5";
+      else if (durationMin === 30) durationKey = "10";
+      else if (durationMin === 60) durationKey = "15";
+      else if (durationMin === 180) durationKey = "30";
+      else if (durationMin === 360) durationKey = "60";
+      else if (durationMin === 720) durationKey = "120";
+      else if (durationMin === 1440) durationKey = "180";
+
+      const pattern = (region && durationKey) ? temporalPatterns[region][durationKey] : null;
+
+      if (pattern) {
+        grid.innerHTML = "";
+        const binMinutes = durationMin / pattern.length;
+
+        pattern.forEach((value, i) => {
+          const wrap = document.createElement("div");
+          wrap.innerHTML = `
+        <label>${(i * binMinutes).toFixed(0)}-${((i + 1) * binMinutes).toFixed(0)} min</label>
+        <input class="patternCell" type="number" step="0.001" value="${value.toFixed(3)}" />
+      `;
+          grid.appendChild(wrap);
+        });
+
+        grid.className = "row";
+        if (pattern.length <= 6) grid.className += " six";
+        else if (pattern.length <= 12) grid.className += " twelve";
+        else grid.className += " twentyfour";
+
+        // Update depth pattern after normalized pattern is created
+        updateDepthPattern();
+      }
+    }
+
+    // Add event listeners
+    document.getElementById("state").addEventListener("change", updateTemporalPattern);
+    document.getElementById("durationMin").addEventListener("change", updateTemporalPattern);
+
+    // Force the app to start clean every time it opens
+    window.addEventListener('DOMContentLoaded', (event) => {
+      document.getElementById("state").value = "";
+      document.getElementById("durationMin").value = "";
+      updateTemporalPattern(); // This will trigger the dash placeholders
+    });
+
+    // Function to calculate losses and excess rainfall
+    function calculateLossesTable() {
+      const tbody = document.getElementById("lossesTableBody");
+
+      // Get depth values from the depth grid
+      const depthCells = document.querySelectorAll("#depthGrid .depthCell");
+
+      // Get input values
+      const pervArea = parseFloat(document.getElementById("perviousArea").value) / 100;
+      const impArea = parseFloat(document.getElementById("imperviousArea").value) / 100;
+      const pervInit = parseFloat(document.getElementById("pervInitialLoss").value);
+      const pervCont = parseFloat(document.getElementById("pervContinuousLoss").value);
+      const impInit = parseFloat(document.getElementById("impInitialLoss").value);
+      const impCont = parseFloat(document.getElementById("impContinuousLoss").value);
+
+      // If no depth data available, show empty table
+      if (depthCells.length === 0 || depthCells[0].value === "---") {
+        tbody.innerHTML = "<tr><td colspan='8' style='text-align:center; color:var(--muted);'>No data available. Please complete the inputs above.</td></tr>";
+        document.getElementById("totalRainfall").textContent = "–";
+        document.getElementById("totalLoss").textContent = "–";
+        document.getElementById("totalExcess").textContent = "–";
+        return;
+      }
+
+      // Get duration to calculate time per bin
+      const durationMin = parseFloat(document.getElementById("durationMin").value);
+      const binMinutes = durationMin / depthCells.length;
+      const binHours = binMinutes / 60;
+
+      // Track remaining initial losses
+      let pervInitRem = pervInit;
+      let impInitRem = impInit;
+
+      let totalRainSum = 0;
+      let totalLossSum = 0;
+      let totalExcessSum = 0;
+
+      tbody.innerHTML = "";
+
+      depthCells.forEach((cell, i) => {
+        const rainfall = parseFloat(cell.value);
+        if (!isFinite(rainfall)) return;
+
+        // Get time label
+        const timeLabel = cell.parentElement.querySelector("label").textContent;
+
+        // Pervious losses
+        const pervInitUsed = Math.min(pervInitRem, rainfall);
+        pervInitRem -= pervInitUsed;
+        const pervContPossible = pervCont * binHours;
+        const pervContUsed = Math.min(pervContPossible, Math.max(0, rainfall - pervInitUsed));
+        const pervTotalLoss = pervInitUsed + pervContUsed;
+
+        // Impervious losses
+        const impInitUsed = Math.min(impInitRem, rainfall);
+        impInitRem -= impInitUsed;
+        const impContPossible = impCont * binHours;
+        const impContUsed = Math.min(impContPossible, Math.max(0, rainfall - impInitUsed));
+        const impTotalLoss = impInitUsed + impContUsed;
+
+        // Weighted total loss
+        const totalLoss = (pervArea * pervTotalLoss) + (impArea * impTotalLoss);
+        const excess = Math.max(0, rainfall - totalLoss);
+
+        totalRainSum += rainfall;
+        totalLossSum += totalLoss;
+        totalExcessSum += excess;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+      <td>${timeLabel}</td>
+      <td>${rainfall.toFixed(2)}</td>
+      <td>${pervInitUsed.toFixed(2)}</td>
+      <td>${pervContUsed.toFixed(2)}</td>
+      <td>${impInitUsed.toFixed(2)}</td>
+      <td>${impContUsed.toFixed(2)}</td>
+      <td>${totalLoss.toFixed(2)}</td>
+      <td style="color: var(--ok); font-weight: 600;">${excess.toFixed(2)}</td>
+    `;
+        tbody.appendChild(tr);
+      });
+
+      // Update totals
+      document.getElementById("totalRainfall").textContent = totalRainSum.toFixed(2);
+      document.getElementById("totalLoss").textContent = totalLossSum.toFixed(2);
+      document.getElementById("totalExcess").textContent = totalExcessSum.toFixed(2);
+    }
+
+    // Add event listeners to recalculate when inputs change
+    document.getElementById("perviousArea").addEventListener("input", calculateLossesTable);
+    document.getElementById("imperviousArea").addEventListener("input", calculateLossesTable);
+    document.getElementById("pervInitialLoss").addEventListener("input", calculateLossesTable);
+    document.getElementById("pervContinuousLoss").addEventListener("input", calculateLossesTable);
+    document.getElementById("impInitialLoss").addEventListener("input", calculateLossesTable);
+    document.getElementById("impContinuousLoss").addEventListener("input", calculateLossesTable);
+
+    // Visual area distribution bar update
+    // Visual area distribution bar update with validation
+    function updateAreaBar() {
+      let pervArea = parseFloat(document.getElementById("perviousArea").value) || 0;
+      let impervArea = parseFloat(document.getElementById("imperviousArea").value) || 0;
+
+      // Validate: Don't allow negative values
+      pervArea = Math.max(0, pervArea);
+      impervArea = Math.max(0, impervArea);
+
+      // Cap at 100%
+      pervArea = Math.min(100, pervArea);
+      impervArea = Math.min(100, impervArea);
+
+      const total = pervArea + impervArea;
+
+      // Update visual bar (scale to show proportions)
+      if (total > 0) {
+        const pervPercent = (pervArea / total) * 100;
+        const impervPercent = (impervArea / total) * 100;
+
+        document.getElementById("pervBar").style.width = pervPercent + "%";
+        document.getElementById("impervBar").style.width = impervPercent + "%";
+        document.getElementById("pervBarText").textContent = pervArea.toFixed(0) + "%";
+        document.getElementById("impervBarText").textContent = impervArea.toFixed(0) + "%";
+      } else {
+        document.getElementById("pervBar").style.width = "50%";
+        document.getElementById("impervBar").style.width = "50%";
+        document.getElementById("pervBarText").textContent = "0%";
+        document.getElementById("impervBarText").textContent = "0%";
+      }
+
+      // Visual feedback for validation
+      const hintElement = document.querySelector('.hint');
+      if (Math.abs(total - 100) > 0.5) {
+        hintElement.textContent = `⚠ Areas sum to ${total.toFixed(0)}% (must equal 100%)`;
+        hintElement.style.color = "var(--warn)";
+      } else {
+        hintElement.textContent = "✓ Areas sum to 100%";
+        hintElement.style.color = "var(--ok)";
+      }
+
+      // Update input values to validated amounts
+      document.getElementById("perviousArea").value = pervArea.toFixed(0);
+      document.getElementById("imperviousArea").value = impervArea.toFixed(0);
+
+      // Trigger recalculation
+      calculateLossesTable();
+    }
+
+    // Auto-balance areas to always sum to 100%
+    function updatePerviousArea() {
+      let pervArea = parseFloat(document.getElementById("perviousArea").value) || 0;
+      pervArea = Math.max(0, Math.min(100, pervArea)); // Clamp between 0-100
+
+      const impervArea = 100 - pervArea;
+
+      document.getElementById("perviousArea").value = pervArea.toFixed(0);
+      document.getElementById("imperviousArea").value = impervArea.toFixed(0);
+
+      updateAreaBar();
+    }
+
+    function updateImperviousArea() {
+      let impervArea = parseFloat(document.getElementById("imperviousArea").value) || 0;
+      impervArea = Math.max(0, Math.min(100, impervArea)); // Clamp between 0-100
+
+      const pervArea = 100 - impervArea;
+
+      document.getElementById("imperviousArea").value = impervArea.toFixed(0);
+      document.getElementById("perviousArea").value = pervArea.toFixed(0);
+
+      updateAreaBar();
+    }
+
+    // Simplified bar update (validation handled above)
+    function updateAreaBar() {
+      const pervArea = parseFloat(document.getElementById("perviousArea").value) || 0;
+      const impervArea = parseFloat(document.getElementById("imperviousArea").value) || 0;
+
+      document.getElementById("pervBar").style.width = pervArea + "%";
+      document.getElementById("impervBar").style.width = impervArea + "%";
+      document.getElementById("pervBarText").textContent = pervArea.toFixed(0) + "%";
+      document.getElementById("impervBarText").textContent = impervArea.toFixed(0) + "%";
+
+      // Visual feedback
+      const hintElement = document.querySelector('.hint');
+      const total = pervArea + impervArea;
+      if (Math.abs(total - 100) < 0.5) {
+        hintElement.textContent = "✓ Areas sum to 100%";
+        hintElement.style.color = "var(--ok)";
+      } else {
+        hintElement.textContent = `Areas sum to ${total.toFixed(0)}%`;
+        hintElement.style.color = "var(--muted)";
+      }
+
+      calculateLossesTable();
+    }
+
+    // Soil type characteristics
+    const soilProperties = {
+      sandy: {
+        initialLoss: 5.0,
+        continuousLoss: 12.0,
+        description: "High infiltration rate - free draining"
+      },
+      loam: {
+        initialLoss: 10.0,
+        continuousLoss: 3.0,
+        description: "Moderate infiltration rate - balanced"
+      },
+      clay: {
+        initialLoss: 15.0,
+        continuousLoss: 1.0,
+        description: "Low infiltration rate - poor drainage"
+      }
+    };
+
+    // Update soil losses based on selection
+    function updateSoilLosses() {
+      const soilType = document.getElementById("soilType").value;
+      const properties = soilProperties[soilType];
+
+      document.getElementById("pervInitialLoss").value = properties.initialLoss.toFixed(1);
+      document.getElementById("pervContinuousLoss").value = properties.continuousLoss.toFixed(1);
+      document.getElementById("soilDescription").textContent = properties.description;
+
+      calculateLossesTable();
+    }
+
+    // Impervious surface characteristics
+    const impervProperties = {
+      concrete: {
+        initialLoss: 1.5,
+        continuousLoss: 0.0,
+        description: "Minimal infiltration - standard pavement"
+      },
+      roof: {
+        initialLoss: 1.0,
+        continuousLoss: 0.0,
+        description: "Near-zero infiltration - building roof"
+      },
+      compacted: {
+        initialLoss: 3.0,
+        continuousLoss: 0.5,
+        description: "Very low infiltration - compacted surface"
+      }
+    };
+
+    // Update impervious losses based on selection
+    function updateImpervLosses() {
+      const impervType = document.getElementById("impervType").value;
+      const properties = impervProperties[impervType];
+
+      document.getElementById("impInitialLoss").value = properties.initialLoss.toFixed(1);
+      document.getElementById("impContinuousLoss").value = properties.continuousLoss.toFixed(1);
+      document.getElementById("impervDescription").textContent = properties.description;
+
+      calculateLossesTable();
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', function () {
+      updateAreaBar();
+      updateSoilLosses();
+      updateImpervLosses();
+    });
+  </script>
+
 </body>
+
 </html>
