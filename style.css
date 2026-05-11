@@ -1,144 +1,307 @@
-:root{
-  --bg: #0b0f14;
-  --card: #111723;
-  --muted: #7f8ea3;
-  --text: #e8f0ff;
-  --accent: #4ea8ff;
-  --ok: #7be495;
-  --warn: #ffd166;
-  --danger: #ff6b6b;
-  --ring: rgba(78,168,255,.25);
-  --radius: 16px;
+:root {
+    --bg: #0b0f14;
+    --card: #111723;
+    --muted: #7f8ea3;
+    --text: #e8f0ff;
+    --accent: #4ea8ff;
+    --ok: #7be495;
+    --warn: #ffd166;
+    --danger: #ff6b6b;
+    --ring: rgba(78, 168, 255, .25);
+    --radius: 16px;
 }
 
-*{box-sizing:border-box}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,Segoe UI,Roboto,Inter,Arial}
-.container{max-width:1100px;margin:0 auto;padding:20px}
-header h1{margin:.2rem 0 0}
-.sub{color:var(--muted);margin:.25rem 0 0}
-
-.grid{display:grid;gap:16px}
-@media (min-width:900px){ .grid{grid-template-columns:1fr 1fr 1fr} }
-
-.card{background:var(--card);border:1px solid #1a2433;border-radius:var(--radius);padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
-.card h2{margin:.2rem 0 1rem}
-.card h3{margin:.5rem 0}
-
-.row{display:grid;gap:10px;margin:10px 0}
-.row.two{grid-template-columns:1fr 1fr}
-.row.four{grid-template-columns:repeat(4,1fr)}
-
-/* Pattern Grid specific rows - UPDATED */
-.row.six { 
-    display: grid;
-    grid-template-columns: repeat(6, 1fr); 
-    gap: 12px; 
+* {
+    box-sizing: border-box
 }
-.row.twelve { 
-    display: grid;
-    grid-template-columns: repeat(6, 1fr); 
-    gap: 12px; 
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, Segoe UI, Roboto, Inter, Arial
 }
-.row.twentyfour { 
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px
+}
+
+header h1 {
+    margin: .2rem 0 0
+}
+
+.sub {
+    color: var(--muted);
+    margin: .25rem 0 0
+}
+
+.grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr); 
-    gap: 12px; 
+    gap: 16px
+}
+
+@media (min-width:900px) {
+    .grid {
+        grid-template-columns: 1fr 1fr 1fr
+    }
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid #1a2433;
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .2)
+}
+
+.card h2 {
+    margin: .2rem 0 1rem
+}
+
+.card h3 {
+    margin: .5rem 0
+}
+
+.row {
+    display: grid;
+    gap: 10px;
+    margin: 10px 0
+}
+
+.row.two {
+    grid-template-columns: 1fr 1fr
+}
+
+.row.four {
+    grid-template-columns: repeat(4, 1fr)
+}
+
+/* Pattern Grid specific rows */
+.row.six {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+}
+
+.row.twelve {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+}
+
+.row.twentyfour {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .row.six { grid-template-columns: repeat(3, 1fr); }
-    .row.twelve { grid-template-columns: repeat(3, 1fr); }
-    .row.twentyfour { grid-template-columns: repeat(3, 1fr); }
+    .row.six {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .row.twelve {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .row.twentyfour {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
-/* Add this to prevent the minute labels from wrapping */
-#patternGrid div label {
-    white-space: nowrap; 
+/* Prevent minute labels from wrapping */
+#patternGrid div label,
+#depthGrid div label {
+    white-space: nowrap;
     font-size: 0.8rem;
     margin-bottom: 6px;
 }
 
 .patternCell {
     text-align: center;
-    padding: 10px 4px; /* Reduced side padding from 12px to 4px */
+    padding: 10px 4px;
 }
 
-label{display:block;font-size:.9rem;color:var(--muted);margin-bottom:4px}
-input{
-  width:100%;padding:10px 12px;border-radius:10px;border:1px solid #26344a;background:#0e1520;color:var(--text);
-  outline:none;transition:border .15s, box-shadow .15s
+label {
+    display: block;
+    font-size: .9rem;
+    color: var(--muted);
+    margin-bottom: 4px
 }
-input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--ring)}
-details{margin-top:8px}
-summary{cursor:pointer;color:var(--accent)}
+
+input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #26344a;
+    background: #0e1520;
+    color: var(--text);
+    outline: none;
+    transition: border .15s, box-shadow .15s
+}
+
+input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--ring)
+}
+
+/* ── NEW: readonly inputs look distinct ── */
+input[readonly] {
+    background: #080d12;
+    color: var(--muted);
+    cursor: not-allowed;
+    border-style: dashed;
+}
+
+details {
+    margin-top: 8px
+}
+
+summary {
+    cursor: pointer;
+    color: var(--accent)
+}
 
 .patternCell::-webkit-outer-spin-button,
 .patternCell::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .patternCell[type=number] {
-  -moz-appearance: textfield;
+    -moz-appearance: textfield;
 }
 
 select {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid #26344a;
-  background: #0e1520;
-  color: var(--text);
-  outline: none;
-  transition: border .15s, box-shadow .15s;
-  font-size: 0.9rem;
-  
-  /* custom arrow */
-  appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg fill='%23e8f0ff' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 16px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #26344a;
+    background: #0e1520;
+    color: var(--text);
+    outline: none;
+    transition: border .15s, box-shadow .15s;
+    font-size: 0.9rem;
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%23e8f0ff' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
 }
 
 select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--ring);
-
-  /* make arrow turn blue on focus */
-  background-image: url("data:image/svg+xml;utf8,<svg fill='%234ea8ff' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--ring);
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%234ea8ff' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
 }
 
-
-.box{border:1px dashed #243247;border-radius:12px;padding:10px}
-
-.actions{display:flex;align-items:center;gap:14px}
-button{
-  appearance:none;border:0;background:var(--accent);color:#021b33;
-  font-weight:700;padding:12px 18px;border-radius:12px;cursor:pointer;
-  box-shadow:0 8px 20px rgba(78,168,255,.25)
+.box {
+    border: 1px dashed #243247;
+    border-radius: 12px;
+    padding: 10px
 }
-button:hover{filter:brightness(1.05)}
-#msg{color:var(--muted)}
 
-.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px}
-.k{display:block;color:var(--muted);font-size:.9rem}
-.metrics span:last-child{font-size:1.25rem;font-weight:700}
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 14px
+}
 
-.tableWrap{overflow:auto;border-radius:12px;border:1px solid #1a2433}
-table{width:100%;border-collapse:collapse;background:#0f1724}
-thead th{position:sticky;top:0;background:#0e1520}
-th,td{padding:10px 12px;border-bottom:1px solid #1a2433;text-align:right}
-th:first-child, td:first-child{text-align:left}
-tfoot th{background:#0e1520;font-weight:800}
+button {
+    appearance: none;
+    border: 0;
+    background: var(--accent);
+    color: #021b33;
+    font-weight: 700;
+    padding: 12px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(78, 168, 255, .25)
+}
 
-.hint{color:var(--muted);font-size:.9rem}
-.footer{opacity:.8}
-.bad{color:var(--danger)}
-.good{color:var(--ok)}
+button:hover {
+    filter: brightness(1.05)
+}
 
-/* Styling for the placeholder/inactive state */
+#msg {
+    color: var(--muted)
+}
+
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 10px
+}
+
+.k {
+    display: block;
+    color: var(--muted);
+    font-size: .9rem
+}
+
+.metrics span:last-child {
+    font-size: 1.25rem;
+    font-weight: 700
+}
+
+.tableWrap {
+    overflow: auto;
+    border-radius: 12px;
+    border: 1px solid #1a2433
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #0f1724
+}
+
+thead th {
+    position: sticky;
+    top: 0;
+    background: #0e1520
+}
+
+th,
+td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #1a2433;
+    text-align: right
+}
+
+th:first-child,
+td:first-child {
+    text-align: left
+}
+
+tfoot th {
+    background: #0e1520;
+    font-weight: 800
+}
+
+.hint {
+    color: var(--muted);
+    font-size: .9rem
+}
+
+.footer {
+    opacity: .8
+}
+
+.bad {
+    color: var(--danger)
+}
+
+.good {
+    color: var(--ok)
+}
+
 .patternCell[value="—"] {
     color: var(--muted) !important;
     border-style: dashed !important;
@@ -146,36 +309,103 @@ tfoot th{background:#0e1520;font-weight:800}
 }
 
 .pattern-label {
-    color: var(--accent) !important; /* The blue color */
-    font-weight: 600 !important;    /* Bold styling */
-    font-size: 0.95rem !important;  /* Same size as Intensity label */
+    color: var(--accent) !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
     display: block;
-    margin-bottom: 12px;           /* Spacing from the boxes */
-    text-transform: none;           /* Keeps your wording as typed */
+    margin-bottom: 12px;
+    text-transform: none;
 }
 
-/* Styling for the calculated depth boxes */
 .depthCell {
-    background: #0b111a !important; /* Slightly darker to show it's read-only */
-    color: var(--text) !important;  /* Normal text color (white/light) */
+    background: #0b111a !important;
+    color: var(--text) !important;
     border-color: #1a2433 !important;
 }
 
-/* Ensure labels in both grids stay on one line */
-#patternGrid div label, #depthGrid div label {
-    white-space: nowrap;
-    font-size: 0.8rem;
-    margin-bottom: 6px;
-}
-
-/* Style for the calculated Depth boxes */
 .depth-box {
-    color: var(--text) !important;  /* Normal text color instead of green */
-    background: #0b111a !important; /* Slightly darker background */
+    color: var(--text) !important;
+    background: #0b111a !important;
     border-color: #1a2433 !important;
 }
 
-/* Ensure labels in both grids don't wrap */
-#patternGrid div label, #depthGrid div label {
+#patternGrid div label,
+#depthGrid div label {
     white-space: nowrap;
+}
+
+
+/* ============================================================
+   NEW RULES – Table 2.6 additions
+   (everything below this line is new; nothing above was changed)
+============================================================ */
+
+/* Small pill badge next to label — blue for fixed values */
+.fixed-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    background: rgba(78, 168, 255, 0.12);
+    color: var(--accent);
+    border: 1px solid rgba(78, 168, 255, 0.3);
+    border-radius: 5px;
+    padding: 1px 5px;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+/* Small pill badge — yellow for the zero continuous loss */
+.zero-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    background: rgba(255, 209, 102, 0.08);
+    color: var(--warn);
+    border: 1px solid rgba(255, 209, 102, 0.25);
+    border-radius: 5px;
+    padding: 1px 5px;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+/* Slider row layout */
+.range-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.range-row input[type=range] {
+    flex: 1;
+    padding: 0;
+    border: none;
+    background: transparent;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+/* Min/max labels beside the slider */
+.range-label {
+    color: var(--muted);
+    font-size: 0.8rem;
+    min-width: 30px;
+}
+
+/* Live value display to the right of the slider */
+.range-val {
+    color: var(--ok);
+    font-weight: 700;
+    font-size: 1rem;
+    min-width: 50px;
+    text-align: right;
+}
+
+/* Yellow warning box inside the impervious panel */
+.info-warn {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: rgba(255, 209, 102, 0.07);
+    border: 1px solid rgba(255, 209, 102, 0.22);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: var(--warn);
 }
