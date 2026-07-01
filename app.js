@@ -1,155 +1,338 @@
-// ------- Defaults from your Excel (Question TAM) -------
-const DEFAULT_PATTERN = [
-  // 6 × 5-min bins; must sum ≈ 1.000
-  0.097, 0.161, 0.400, 0.164, 0.106, 0.072
-];
+/* ================================================================
+   SUPABASE CONFIG
+================================================================ */
+const SUPABASE_URL = 'https://xmeafzdsowstzuxaezrz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_e77sEc2jvltcm_eO9UWn1Q_bmefcdZv'; 
 
-const BIN_MINUTES = 5; // 5-min step, 6 bins => 30 min total
+const HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type': 'application/json'
+};
 
-// ------- Helpers -------
+/* ================================================================
+   FETCH HELPERS
+================================================================ */
+async function fetchStations(state) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/stations?state=eq.${encodeURIComponent(state)}&order=name.asc`,
+    { headers: HEADERS }
+  );
+  return await res.json();
+}
+
+async function fetchPattern(region, durationKey) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/temporal_patterns?region=eq.${region}&duration_key=eq.${durationKey}`,
+    { headers: HEADERS }
+  );
+  const data = await res.json();
+  return data[0]; // return first match
+}
+
+/* ================================================================
+   STATE → REGION MAPPING
+================================================================ */
+const stateToRegion = {
+  'Terengganu': 'Region1', 'Kelantan': 'Region1',
+  'Johor': 'Region2', 'Negeri Sembilan': 'Region2',
+  'Melaka': 'Region2', 'Selangor': 'Region2', 'Pahang': 'Region2',
+  'Perak': 'Region3', 'Kedah': 'Region3',
+  'Pulau Pinang': 'Region3', 'Perlis': 'Region3',
+  'Kuala Lumpur': 'Region5'
+};
+
+const durationMap = {
+  15: '5', 30: '10', 60: '15',
+  180: '30', 360: '60', 720: '120', 1440: '180'
+};
+
+/* ================================================================
+   HELPERS
+================================================================ */
 const $ = (id) => document.getElementById(id);
-const fmt = (x, d=3) => (isFinite(x) ? Number(x).toFixed(d) : "—");
-const sum = (arr) => arr.reduce((a,b)=>a+(+b||0),0);
+const fmt = (x, d = 3) => (isFinite(x) ? Number(x).toFixed(d) : '—');
+const sum = (arr) => arr.reduce((a, b) => a + (+b || 0), 0);
 
-// Build the temporal pattern editor
-(function mountPattern(){
-  const grid = $("patternGrid");
-  DEFAULT_PATTERN.forEach((v, i) => {
-    const wrap = document.createElement("div");
-    wrap.innerHTML = `
-      <label>${i*BIN_MINUTES}-${(i+1)*BIN_MINUTES} min</label>
-      <input class="patternCell" type="number" step="0.001" value="${v}" />
-    `;
-    grid.appendChild(wrap);
-  });
-})();
+/* ================================================================
+   ON STATE CHANGE → load stations from Supabase
+================================================================ */
+document.getElementById('state').addEventListener('change', async function () {
+  const state = this.value;
+  const stationSelect = document.getElementById('stationSelect');
 
-// Calculator core (mirrors the Excel logic closely)
-function calculate(){
-  // Inputs
-  const loc = $("location").value.trim();
-  const ARI = parseFloat($("ariYears").value);
-  const durationMin = parseFloat($("durationMin").value);
+  // Reset station dropdown
+  stationSelect.innerHTML = '<option value="">-- Select Station --</option>';
 
-  const K = parseFloat($("idfK").value);
-  const x = parseFloat($("idfX").value);
-  const A = parseFloat($("idfA").value);
-  const n = parseFloat($("idfN").value);
+  // Clear IDF fields
+  ['idfK', 'idfX', 'idfA', 'idfN'].forEach(id => $(id).value = '');
 
-  const pervPct = parseFloat($("perviousPct").value);
-  const impervPct = parseFloat($("imperviousPct").value);
+  if (!state) return;
 
-  const pervInit = parseFloat($("pervInitLoss").value);
-  const pervCont = parseFloat($("pervContLoss").value);     // mm/hr
-  const impervInit = parseFloat($("impervInitLoss").value);
-  const impervCont = parseFloat($("impervContLoss").value); // mm/hr
-
-  const pattern = Array.from(document.querySelectorAll(".patternCell")).map(i => parseFloat(i.value));
-  const patternSum = sum(pattern);
-
-  // Simple checks
-  let warn = [];
-  if (Math.abs(patternSum - 1) > 0.02) {
-    warn.push(`Temporal pattern sums to ${patternSum.toFixed(3)} (not ~1.000).`);
+  try {
+    const stations = await fetchStations(state);
+    stations.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.station_id;
+      opt.text = `${s.station_id} – ${s.name}`;
+      opt.dataset.lambda = s.lambda;
+      opt.dataset.kappa = s.kappa;
+      opt.dataset.theta = s.theta;
+      opt.dataset.eta = s.eta;
+      stationSelect.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Error fetching stations:', err);
   }
-  if (Math.abs((pervPct + impervPct) - 100) > 0.5) {
-    warn.push(`Areas sum to ${(pervPct+impervPct).toFixed(1)}% (not 100%).`);
-  }
+});
 
-  // IDF intensity (mm/hr): i = K * ARI^x / (A + t)^n, with t in hours
+/* ================================================================
+   ON STATION CHANGE → autofill IDF coefficients
+================================================================ */
+document.getElementById('stationSelect').addEventListener('change', function () {
+  const opt = this.options[this.selectedIndex];
+  if (!opt.value) return;
+
+  $('idfK').value = opt.dataset.lambda;
+  $('idfX').value = opt.dataset.kappa;
+  $('idfA').value = opt.dataset.theta;
+  $('idfN').value = opt.dataset.eta;
+
+  // Trigger intensity calculation if duration already selected
+  calculateDesignIntensity();
+});
+
+/* ================================================================
+   ON DURATION/ARI CHANGE → fetch temporal pattern + calculate
+================================================================ */
+async function onDurationOrARIChange() {
+  const state = $('state').value;
+  const durationMin = parseFloat($('durationMin').value);
+
+  if (!state || !durationMin) return;
+
+  const region = stateToRegion[state];
+  const durationKey = durationMap[durationMin];
+
+  if (!region || !durationKey) return;
+
+  try {
+    const pattern = await fetchPattern(region, durationKey);
+    if (!pattern) return;
+
+    // Update pattern grid
+    const grid = $('patternGrid');
+    grid.innerHTML = '';
+    const binMin = pattern.bin_minutes;
+
+    pattern.values.forEach((v, i) => {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `
+        <label>${i * binMin}-${(i + 1) * binMin} min</label>
+        <input class="patternCell" type="number" step="0.001" value="${v}" />
+      `;
+      grid.appendChild(wrap);
+    });
+
+    // Set grid class based on number of bins
+    const len = pattern.values.length;
+    grid.className = 'row' + (len <= 6 ? ' six' : len <= 12 ? ' twelve' : ' twentyfour');
+
+    // Recalculate
+    calculateDesignIntensity();
+
+  } catch (err) {
+    console.error('Error fetching pattern:', err);
+  }
+}
+
+document.getElementById('ariYears').addEventListener('change', onDurationOrARIChange);
+document.getElementById('durationMin').addEventListener('change', onDurationOrARIChange);
+
+/* ================================================================
+   IDF INTENSITY CALCULATION
+================================================================ */
+function calculateDesignIntensity() {
+  const K = parseFloat($('idfK').value);
+  const x = parseFloat($('idfX').value);
+  const A = parseFloat($('idfA').value);
+  const n = parseFloat($('idfN').value);
+  const ARI = parseFloat($('ariYears').value);
+  const durationMin = parseFloat($('durationMin').value);
+
+  if (![K, x, A, n, ARI, durationMin].every(isFinite)) return;
+
   const t_hr = durationMin / 60;
   const i_mmhr = K * Math.pow(ARI, x) / Math.pow(A + t_hr, n);
+  const totalDepth = i_mmhr * t_hr;
 
-  // Total design depth (mm) over the duration
-  const totalDepth = i_mmhr * (durationMin/60);
+  $('designIntensity').textContent = fmt(i_mmhr, 3);
+  if ($('totalDepthBox')) $('totalDepthBox').textContent = fmt(totalDepth, 3);
 
-  // Depth per bin from pattern
-  const binDepths = pattern.map(frac => frac * totalDepth);
+  updateDepthPattern(totalDepth);
+}
 
-  // Loss per bin (area-weighted, initial + continuous):
-  // We track remaining "initial loss" buckets for each surface.
-  let pervInitRem = pervInit;
-  let impervInitRem = impervInit;
+/* ================================================================
+   DEPTH PATTERN UPDATE
+================================================================ */
+function updateDepthPattern(totalDepth) {
+  const patternCells = document.querySelectorAll('.patternCell');
+  const depthGrid = $('depthGrid');
+  if (!depthGrid) return;
 
-  const dt_hr = BIN_MINUTES / 60;
+  depthGrid.innerHTML = '';
+  patternCells.forEach(cell => {
+    const norm = parseFloat(cell.value);
+    const depthVal = norm * totalDepth;
+    const timeLabel = cell.parentElement.querySelector('label').textContent;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+      <label>${timeLabel}</label>
+      <input class="depthCell depth-box" type="text" 
+             value="${depthVal.toFixed(3)}" readonly style="text-align:center;" />
+    `;
+    depthGrid.appendChild(wrap);
+  });
 
-  let rows = [];
-  let sumLoss = 0, sumExcess = 0;
+  depthGrid.className = $('patternGrid').className;
+  calculateLossesTable();
+}
 
-  for (let b = 0; b < binDepths.length; b++){
-    const depth = binDepths[b];
+/* ================================================================
+   LOSSES CALCULATION
+================================================================ */
+function calculateLossesTable() {
+  const tbody = $('lossesTableBody');
+  if (!tbody) return;
 
-    // pervious: first satisfy remaining initial loss, then continuous loss
-    const pervContThis = pervCont * dt_hr; // mm in this bin
-    const pervLossThis = Math.min(pervInitRem, depth) + Math.max(0, Math.min(depth - Math.min(pervInitRem, depth), pervContThis));
-    pervInitRem = Math.max(0, pervInitRem - Math.min(pervInitRem, depth));
+  const depthCells = document.querySelectorAll('#depthGrid .depthCell');
+  const pervArea = parseFloat($('perviousArea').value) / 100;
+  const impArea = parseFloat($('imperviousArea').value) / 100;
+  const pervInit = 10.0;
+  const pervCont = parseFloat($('pervContinuousLoss').value);
+  const impInit = parseFloat($('impInitialLoss').value);
+  const impCont = 0.0;
 
-    // impervious
-    const impervContThis = impervCont * dt_hr;
-    const impervLossThis = Math.min(impervInitRem, depth) + Math.max(0, Math.min(depth - Math.min(impervInitRem, depth), impervContThis));
-    impervInitRem = Math.max(0, impervInitRem - Math.min(impervInitRem, depth));
+  if (depthCells.length === 0) return;
 
-    // area-weighted loss
-    const weightedLoss = (pervPct * pervLossThis + impervPct * impervLossThis) / 100;
+  const durationMin = parseFloat($('durationMin').value);
+  const binH = (durationMin / depthCells.length) / 60;
 
-    // cap loss to available depth in this bin
-    const loss = Math.min(weightedLoss, depth);
-    const excess = Math.max(0, depth - loss);
+  let pervIR = pervInit, impIR = impInit;
+  let sumR = 0, sumL = 0, sumE = 0;
+  tbody.innerHTML = '';
 
-    const excess_mmps = excess / (BIN_MINUTES * 60); // mm/s
-    sumLoss += loss;
-    sumExcess += excess;
+  depthCells.forEach(cell => {
+    const r = parseFloat(cell.value);
+    if (!isFinite(r)) return;
+    const lbl = cell.parentElement.querySelector('label').textContent;
 
-    rows.push({
-      label: `${b*BIN_MINUTES}-${(b+1)*BIN_MINUTES}`,
-      frac: pattern[b],
-      depth,
-      loss,
-      excess,
-      mmps: excess_mmps
-    });
-  }
+    const piu = Math.min(pervIR, r); pervIR -= piu;
+    const pcu = Math.min(pervCont * binH, Math.max(0, r - piu));
+    const iiu = Math.min(impIR, r); impIR -= iiu;
 
-  // Render metrics
-  $("outI").textContent = fmt(i_mmhr, 3);
-  $("outDepth").textContent = fmt(totalDepth, 3);
+    const loss = (pervArea * (piu + pcu)) + (impArea * iiu);
+    const excess = Math.max(0, r - loss);
+    sumR += r; sumL += loss; sumE += excess;
 
-  if ($("totalDepthBox")) $("totalDepthBox").textContent = fmt(totalDepth, 3);
-
-  // Render table
-  const tbody = $("resultTable").querySelector("tbody");
-  tbody.innerHTML = "";
-  rows.forEach(r => {
-    const tr = document.createElement("tr");
+    const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${r.label}</td>
-      <td>${fmt(r.frac,3)}</td>
-      <td>${fmt(r.depth,3)}</td>
-      <td>${fmt(r.loss,3)}</td>
-      <td>${fmt(r.excess,3)}</td>
-      <td>${fmt(r.mmps,4)}</td>
+      <td>${lbl}</td>
+      <td>${r.toFixed(2)}</td>
+      <td>${piu.toFixed(2)}</td>
+      <td>${pcu.toFixed(2)}</td>
+      <td>${iiu.toFixed(2)}</td>
+      <td style="color:var(--muted);">0.00</td>
+      <td>${loss.toFixed(2)}</td>
+      <td style="color:var(--ok);font-weight:600;">${excess.toFixed(2)}</td>
     `;
     tbody.appendChild(tr);
   });
 
-  $("sumPattern").textContent = fmt(patternSum, 3);
-  $("sumDepth").textContent = fmt(sum(binDepths), 3);
-  $("sumLoss").textContent = fmt(sumLoss, 3);
-  $("sumExcess").textContent = fmt(sumExcess, 3);
-
-  $("msg").textContent = warn.length ? `⚠ ${warn.join(" ")}` : "✓ Done.";
-  $("msg").className = warn.length ? "bad" : "good";
+  $('totalRainfall').textContent = sumR.toFixed(2);
+  $('totalLoss').textContent = sumL.toFixed(2);
+  $('totalExcess').textContent = sumE.toFixed(2);
 }
 
-// Wire up
-$("calcBtn").addEventListener("click", calculate);
+/* ================================================================
+   CALCULATE BUTTON
+================================================================ */
+$('calcBtn').addEventListener('click', function () {
+  const pattern = Array.from(document.querySelectorAll('.patternCell')).map(i => parseFloat(i.value));
+  const patternSum = sum(pattern);
+  const K = parseFloat($('idfK').value);
+  const x = parseFloat($('idfX').value);
+  const A = parseFloat($('idfA').value);
+  const n = parseFloat($('idfN').value);
+  const ARI = parseFloat($('ariYears').value);
+  const durationMin = parseFloat($('durationMin').value);
 
-// First render
-calculate();
+  let warn = [];
+  if (Math.abs(patternSum - 1) > 0.02) warn.push(`Pattern sums to ${patternSum.toFixed(3)} (not ~1.000).`);
 
+  const t_hr = durationMin / 60;
+  const i_mmhr = K * Math.pow(ARI, x) / Math.pow(A + t_hr, n);
+  const totalDepth = i_mmhr * t_hr;
+  const binDepths = pattern.map(f => f * totalDepth);
 
-function solveSimpleChallenge() {
-  console.log("Page loaded, running setup...");
-  // You can add anything here that should run when page loads
-}
+  let pervInitRem = 10.0;
+  let impInitRem = parseFloat($('impInitialLoss').value);
+  const pervArea = parseFloat($('perviousArea').value);
+  const impArea = parseFloat($('imperviousArea').value);
+  const pervCont = parseFloat($('pervContinuousLoss').value);
+  const binMin = durationMin / pattern.length;
+  const dt_hr = binMin / 60;
 
+  let rows = [];
+  let sumLoss = 0, sumExcess = 0;
+
+  binDepths.forEach((depth, b) => {
+    const piu = Math.min(pervInitRem, depth); pervInitRem -= piu;
+    const pcu = Math.min(pervCont * dt_hr, Math.max(0, depth - piu));
+    const iiu = Math.min(impInitRem, depth); impInitRem -= iiu;
+
+    const loss = Math.min((pervArea * (piu + pcu) + impArea * iiu) / 100, depth);
+    const excess = Math.max(0, depth - loss);
+    const mmps = excess / (binMin * 60);
+    sumLoss += loss; sumExcess += excess;
+
+    rows.push({
+      label: `${b * binMin}-${(b + 1) * binMin}`,
+      frac: pattern[b], depth, loss, excess, mmps
+    });
+  });
+
+  $('outI').textContent = fmt(i_mmhr, 3);
+  $('outDepth').textContent = fmt(totalDepth, 3);
+
+  const tbody = $('resultTable').querySelector('tbody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.label}</td>
+      <td>${fmt(r.frac, 3)}</td>
+      <td>${fmt(r.depth, 3)}</td>
+      <td>${fmt(r.loss, 3)}</td>
+      <td>${fmt(r.excess, 3)}</td>
+      <td>${fmt(r.mmps, 4)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  $('sumPattern').textContent = fmt(patternSum, 3);
+  $('sumDepth').textContent = fmt(sum(binDepths), 3);
+  $('sumLoss').textContent = fmt(sumLoss, 3);
+  $('sumExcess').textContent = fmt(sumExcess, 3);
+
+  $('msg').textContent = warn.length ? `⚠ ${warn.join(' ')}` : '✓ Done.';
+  $('msg').className = warn.length ? 'bad' : 'good';
+});
+
+/* ================================================================
+   INIT
+================================================================ */
+window.addEventListener('DOMContentLoaded', function () {
+  $('state').value = '';
+  $('durationMin').value = '';
+});
