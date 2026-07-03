@@ -6,12 +6,166 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Time-Area Method (MSMA) Calculator</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Circular State Picker ── */
+    .state-picker-section {
+      margin-bottom: 20px;
+    }
+
+    .state-picker-title {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .state-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px 4px;
+    }
+
+    .state-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      text-align: center;
+      background: none;
+      border: none;
+      padding: 4px 0;
+    }
+
+    .flag-circle {
+      width: 56px;
+      height: 37px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 2px solid #26344a;
+      transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+      background: #0e1520;
+    }
+
+    .state-card:hover .flag-circle {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(78, 168, 255, 0.2);
+    }
+
+    .state-card.selected .flag-circle {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(78, 168, 255, 0.3);
+    }
+
+    .state-flag {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Fallback emoji/letter when image fails */
+    .flag-fallback {
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+
+    .state-name {
+      font-size: 0.70rem;
+      color: var(--muted);
+      font-weight: 500;
+      line-height: 1.3;
+      transition: color 0.15s;
+    }
+
+    .state-card.selected .state-name {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .state-card:hover .state-name {
+      color: var(--text);
+    }
+
+    /* Selected badge */
+    .selected-state-badge {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 8px 12px;
+      background: rgba(78, 168, 255, 0.08);
+      border: 1px solid rgba(78, 168, 255, 0.3);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .selected-state-badge.visible {
+      display: flex;
+    }
+
+    .badge-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 1.5px solid rgba(78, 168, 255, 0.4);
+      flex-shrink: 0;
+    }
+
+    .badge-circle img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .change-state-btn {
+      margin-left: auto;
+      font-size: 0.78rem;
+      color: var(--muted);
+      cursor: pointer;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    .change-state-btn:hover {
+      color: var(--accent);
+    }
+
+    /* Loading text */
+    .loading-text {
+      color: var(--muted);
+      font-size: 0.82rem;
+      padding: 6px 0;
+      display: none;
+    }
+
+    .loading-text.visible {
+      display: block;
+    }
+
+    @media (max-width: 480px) {
+      .state-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .flag-circle {
+        width: 54px;
+        height: 54px;
+      }
+    }
+  </style>
 </head>
 
 <body>
   <header class="container">
     <h1>Time-Area Method (MSMA) Calculator</h1>
-    <p class="sub">Edit inputs below.</p>
+    <p class="sub">Select your state to begin.</p>
   </header>
 
   <main class="container">
@@ -21,30 +175,133 @@
       <!-- LEFT: IDF -->
       <section class="card">
         <h2>Design Rainfall (IDF)</h2>
-        <div class="row" style="margin-bottom:15px;">
-          <label for="state">State</label>
-          <select id="state" style="width:100%;">
-            <option value="">-- Select State --</option>
-            <option>Johor</option>
-            <option>Kedah</option>
-            <option>Kelantan</option>
-            <option>Kuala Lumpur</option>
-            <option>Melaka</option>
-            <option>Negeri Sembilan</option>
-            <option>Pahang</option>
-            <option>Pulau Pinang</option>
-            <option>Perak</option>
-            <option>Perlis</option>
-            <option>Selangor</option>
-            <option>Terengganu</option>
-          </select>
+
+        <!-- ── CIRCULAR STATE PICKER ── -->
+        <div class="state-picker-section">
+          <div class="state-picker-title">State</div>
+          <div class="state-grid" id="stateGrid">
+
+            <button class="state-card" data-state="Johor" onclick="selectState('Johor')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/johor.png" alt="Johor"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Johor</span>
+            </button>
+
+            <button class="state-card" data-state="Kedah" onclick="selectState('Kedah')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/kedah.png" alt="Kedah"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Kedah</span>
+            </button>
+
+            <button class="state-card" data-state="Kelantan" onclick="selectState('Kelantan')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/kelantan.png" alt="Kelantan"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Kelantan</span>
+            </button>
+
+            <button class="state-card" data-state="Kuala Lumpur" onclick="selectState('Kuala Lumpur')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/kl.png" alt="Kuala Lumpur"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Kuala Lumpur</span>
+            </button>
+
+            <button class="state-card" data-state="Melaka" onclick="selectState('Melaka')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/melaka.png" alt="Melaka"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Melaka</span>
+            </button>
+
+            <button class="state-card" data-state="Negeri Sembilan" onclick="selectState('Negeri Sembilan')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/nsembilan.png" alt="Negeri Sembilan"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Negeri Sembilan</span>
+            </button>
+
+            <button class="state-card" data-state="Pahang" onclick="selectState('Pahang')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/pahang.png" alt="Pahang"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Pahang</span>
+            </button>
+
+            <button class="state-card" data-state="Pulau Pinang" onclick="selectState('Pulau Pinang')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/penang.png" alt="Pulau Pinang"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Pulau Pinang</span>
+            </button>
+
+            <button class="state-card" data-state="Perak" onclick="selectState('Perak')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/perak.png" alt="Perak"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Perak</span>
+            </button>
+
+            <button class="state-card" data-state="Perlis" onclick="selectState('Perlis')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/perlis.png" alt="Perlis"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Perlis</span>
+            </button>
+
+            <button class="state-card" data-state="Selangor" onclick="selectState('Selangor')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/selangor.png" alt="Selangor"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Selangor</span>
+            </button>
+
+            <button class="state-card" data-state="Terengganu" onclick="selectState('Terengganu')">
+              <div class="flag-circle">
+                <img class="state-flag" src="flags/terengganu.png" alt="Terengganu"
+                  onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
+              </div>
+              <span class="state-name">Terengganu</span>
+            </button>
+
+          </div>
+
+          <!-- Selected state badge -->
+          <div class="selected-state-badge" id="selectedBadge">
+            <div class="badge-circle">
+              <img id="badgeFlag" src="" alt="" />
+            </div>
+            <span id="badgeText">–</span>
+            <button class="change-state-btn" onclick="clearState()">Change state</button>
+          </div>
         </div>
+
+        <!-- Hidden select for app.js compatibility -->
+        <select id="state" style="display:none;"></select>
+
+        <!-- Station ID / Name -->
         <div class="row" style="margin-bottom:15px;">
+          <div class="loading-text" id="loadingText">⏳ Loading stations...</div>
           <label for="stationSelect">Station ID / Name</label>
           <select id="stationSelect" style="width:100%;">
             <option value="">-- Select Station --</option>
           </select>
         </div>
+
+        <!-- ARI -->
         <div class="row" style="margin-bottom:15px;">
           <label>ARI (years)</label>
           <select id="ariYears" style="width:100%;">
@@ -54,6 +311,8 @@
             <option value="100">100</option>
           </select>
         </div>
+
+        <!-- Duration -->
         <div class="row" style="margin-bottom:20px;">
           <label>Duration (minutes/hours)</label>
           <select id="durationMin" style="width:100%;">
@@ -67,6 +326,8 @@
             <option value="1440">24 hours</option>
           </select>
         </div>
+
+        <!-- IDF Coefficients -->
         <details style="margin-bottom:16px;">
           <summary style="cursor:pointer;color:var(--accent);font-size:.9rem;">IDF Coefficients (λ, κ, θ, η)</summary>
           <div class="row two" style="margin-top:10px;">
@@ -78,12 +339,16 @@
             <div><label>η</label><input id="idfN" type="number" step="0.001" value="0" /></div>
           </div>
         </details>
+
+        <!-- Intensity box -->
         <div
           style="margin-top:16px;padding:14px 16px;background:#0e1520;border-radius:12px;border:2px solid var(--accent);">
           <label style="color:var(--accent);font-weight:600;font-size:.95rem;display:block;margin-bottom:8px;">Design
             Rainfall Intensity, 𝑖 (mm/hr)</label>
           <div id="designIntensity" style="font-size:1.8rem;font-weight:700;color:var(--ok);text-align:center;">-</div>
         </div>
+
+        <!-- Depth box -->
         <div
           style="margin-top:12px;padding:14px 16px;background:#0e1520;border-radius:12px;border:2px solid var(--accent);">
           <label style="color:var(--accent);font-weight:600;font-size:.95rem;display:block;margin-bottom:8px;">Total
@@ -118,11 +383,11 @@
               <div
                 style="display:flex;height:40px;border-radius:8px;overflow:hidden;margin-bottom:12px;border:1px solid #26344a;">
                 <div id="pervBar"
-                  style="background:linear-gradient(135deg,#4ea8ff,#2d7dd2);transition:all .3s;display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:.9rem;">
+                  style="background:linear-gradient(135deg,#4ea8ff,#2d7dd2);transition:all .3s;display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:.9rem;width:40%;">
                   <span id="pervBarText">40%</span>
                 </div>
                 <div id="impervBar"
-                  style="background:linear-gradient(135deg,#7f8ea3,#5a6678);transition:all .3s;display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:.9rem;">
+                  style="background:linear-gradient(135deg,#7f8ea3,#5a6678);transition:all .3s;display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:.9rem;width:60%;">
                   <span id="impervBarText">60%</span>
                 </div>
               </div>
@@ -155,14 +420,10 @@
                   </svg>
                   Pervious Surface
                 </h4>
-
-                <!-- Initial Loss: FIXED 10mm per Table 2.6 -->
                 <div style="margin-bottom:12px;">
                   <label>Initial loss (mm) <span class="fixed-badge">Fixed 10 mm – Table 2.6</span></label>
                   <input id="pervInitialLoss" type="number" value="10.0" readonly />
                 </div>
-
-                <!-- Soil Type -->
                 <div style="margin-bottom:10px;">
                   <label>Soil Type</label>
                   <select id="soilType" style="width:100%;">
@@ -171,8 +432,6 @@
                     <option value="clay">Clay Soil (0.5 – 3 mm/hr)</option>
                   </select>
                 </div>
-
-                <!-- Continuous Loss Slider -->
                 <div>
                   <label>Continuous loss (mm/hr) <span class="fixed-badge">Table 2.6 range</span></label>
                   <div class="range-row">
@@ -184,7 +443,6 @@
                   </div>
                   <input id="pervContinuousLoss" type="hidden" value="6.5" />
                 </div>
-
                 <div
                   style="margin-top:10px;padding:8px;background:rgba(78,168,255,.1);border-radius:6px;font-size:.85rem;">
                   <strong>Soil Properties:</strong>
@@ -204,7 +462,6 @@
                   </svg>
                   Impervious Surface
                 </h4>
-
                 <div style="margin-bottom:12px;">
                   <label>Surface Type</label>
                   <select id="impervType" style="width:100%;">
@@ -213,25 +470,19 @@
                     <option value="compacted">Compacted Soil</option>
                   </select>
                 </div>
-
-                <!-- Initial Loss: FIXED 1.5mm per Table 2.6 -->
                 <div style="margin-bottom:12px;">
                   <label>Initial loss (mm) <span class="fixed-badge">Fixed 1.5 mm – Table 2.6</span></label>
                   <input id="impInitialLoss" type="number" value="1.5" readonly />
                 </div>
-
-                <!-- Continuous Loss: always 0 per Table 2.6 -->
                 <div style="margin-bottom:12px;">
                   <label>Continuous loss (mm/hr) <span class="zero-badge">= 0 – Table 2.6</span></label>
                   <input id="impContinuousLoss" type="number" value="0.0" readonly />
                 </div>
-
                 <div style="padding:8px;background:rgba(127,142,163,.1);border-radius:6px;font-size:.85rem;">
                   <strong>Surface Properties:</strong>
                   <div id="impervDescription" style="color:var(--muted);margin-top:4px;">No continuous loss – per Chow
                     et al. (1988)</div>
                 </div>
-
                 <div class="info-warn">
                   ℹ Impervious surfaces have <strong>zero continuous loss</strong> regardless of surface type, per Table
                   2.6.
@@ -343,216 +594,91 @@
   </section>
 
   <footer class="container footer">
-    <small>Loss values per Table 2.6, Chow et al. (1988) — Impervious: IL = 1.5 mm, CL = 0. Pervious: IL = 10 mm, CL by
-      soil type.</small>
+    <small>Loss values per Table 2.6, Chow et al. (1988) — Impervious: IL = 1.5 mm, CL = 0. Pervious: IL = 10 mm, CL
+      by soil type.</small>
   </footer>
 
+  <!-- app.js handles all Supabase fetching and calculations -->
   <script src="app.js"></script>
+
   <script>
     /* ================================================================
-       STATION DATA
+       STATE FLAG PICKER
+       Triggers app.js via hidden #state select → fetches from Supabase
     ================================================================ */
-    const stationData = {
-      "Johor": [
-        { id: "1437116", name: "Stor JPS Johor Bahru", lambda: 59.972, kappa: 0.163, theta: 0.121, eta: 0.793 },
-        { id: "1534002", name: "Pusat Kem. Pekan Nenas", lambda: 54.265, kappa: 0.179, theta: 0.100, eta: 0.756 },
-        { id: "1541139", name: "Johor Silica", lambda: 59.060, kappa: 0.202, theta: 0.128, eta: 0.660 },
-        { id: "1636001", name: "Balai Polis Kg Seelong", lambda: 50.115, kappa: 0.191, theta: 0.099, eta: 0.763 },
-        { id: "1737001", name: "SM Bukit Besar", lambda: 50.554, kappa: 0.193, theta: 0.117, eta: 0.722 },
-        { id: "1829002", name: "Setor JPS Batu Pahat", lambda: 64.099, kappa: 0.174, theta: 0.201, eta: 0.826 },
-        { id: "1834124", name: "Ladang Ulu Remis", lambda: 55.864, kappa: 0.166, theta: 0.174, eta: 0.810 },
-        { id: "1839196", name: "Simpang Masai K. Sedili", lambda: 61.562, kappa: 0.191, theta: 0.103, eta: 0.701 },
-        { id: "1931003", name: "Emp. Semberong", lambda: 60.568, kappa: 0.163, theta: 0.159, eta: 0.821 },
-        { id: "2025001", name: "Pintu Kaw. Tg. Agas", lambda: 80.936, kappa: 0.187, theta: 0.258, eta: 0.890 },
-        { id: "2033001", name: "JPS Kluang", lambda: 54.428, kappa: 0.192, theta: 0.108, eta: 0.740 },
-        { id: "2231001", name: "Ladang Chan Wing", lambda: 57.188, kappa: 0.186, theta: 0.093, eta: 0.777 },
-        { id: "2232001", name: "Ladang Kekayaan", lambda: 53.457, kappa: 0.180, theta: 0.094, eta: 0.735 },
-        { id: "2235163", name: "Ibu Bekalan Kahang", lambda: 52.177, kappa: 0.186, theta: 0.055, eta: 0.652 },
-        { id: "2237164", name: "Jalan Kluang-Mersing", lambda: 56.966, kappa: 0.190, theta: 0.144, eta: 0.637 },
-        { id: "2330009", name: "Ladang Labis", lambda: 45.808, kappa: 0.222, theta: 0.012, eta: 0.713 },
-        { id: "2528012", name: "Rmh. Tapis Segamat", lambda: 45.212, kappa: 0.224, theta: 0.039, eta: 0.711 },
-        { id: "2534160", name: "Kg Peta Hulu Sg Endau", lambda: 59.500, kappa: 0.185, theta: 0.129, eta: 0.623 },
-        { id: "2636170", name: "Setor JPS Endau", lambda: 62.040, kappa: 0.215, theta: 0.103, eta: 0.592 }
-      ],
-      "Kedah": [
-        { id: "5507076", name: "Bt. 27, Jalan Baling", lambda: 52.398, kappa: 0.172, theta: 0.104, eta: 0.788 },
-        { id: "5704055", name: "Kedah Peak", lambda: 81.579, kappa: 0.200, theta: 0.437, eta: 0.719 },
-        { id: "5806066", name: "Klinik Jeniang", lambda: 59.786, kappa: 0.165, theta: 0.203, eta: 0.791 },
-        { id: "5808001", name: "Bt. 61, Jalang Baling", lambda: 47.496, kappa: 0.183, theta: 0.079, eta: 0.752 },
-        { id: "6103047", name: "Setor JPS Alor Setar", lambda: 64.832, kappa: 0.168, theta: 0.346, eta: 0.800 },
-        { id: "6108001", name: "Kompleks Rumah Muda", lambda: 52.341, kappa: 0.173, theta: 0.120, eta: 0.792 },
-        { id: "6206035", name: "Kuala Nerang", lambda: 54.849, kappa: 0.174, theta: 0.250, eta: 0.810 },
-        { id: "6107032", name: "AmpangPadu", lambda: 66.103, kappa: 0.177, theta: 0.284, eta: 0.842 },
-        { id: "6306031", name: "Padang Senai", lambda: 60.331, kappa: 0.193, theta: 0.249, eta: 0.829 }
-      ],
-      "Kelantan": [
-        { id: "4614001", name: "Brook", lambda: 49.623, kappa: 0.159, theta: 0.242, eta: 0.795 },
-        { id: "4726001", name: "Gunung Gagau", lambda: 43.024, kappa: 0.220, theta: 0.004, eta: 0.527 },
-        { id: "4819027", name: "Gua Musang", lambda: 57.132, kappa: 0.155, theta: 0.119, eta: 0.795 },
-        { id: "4915001", name: "Chabai", lambda: 47.932, kappa: 0.169, theta: 0.108, eta: 0.794 },
-        { id: "4923001", name: "Kg Aring", lambda: 47.620, kappa: 0.187, theta: 0.020, eta: 0.637 },
-        { id: "5120025", name: "Balai Polis Bertam", lambda: 61.338, kappa: 0.168, theta: 0.193, eta: 0.811 },
-        { id: "5216001", name: "Gob", lambda: 41.783, kappa: 0.175, theta: 0.122, eta: 0.720 },
-        { id: "5320038", name: "Dabong", lambda: 51.442, kappa: 0.189, theta: 0.077, eta: 0.710 },
-        { id: "5322044", name: "Kg Lalok", lambda: 53.766, kappa: 0.197, theta: 0.121, eta: 0.705 },
-        { id: "5522047", name: "JPS Kuala Krai", lambda: 39.669, kappa: 0.231, theta: 0.000, eta: 0.563 },
-        { id: "5718033", name: "Kg Jeli, Tanah Merah", lambda: 72.173, kappa: 0.196, theta: 0.360, eta: 0.703 },
-        { id: "5719001", name: "Kg Durian Daun Lawang", lambda: 51.161, kappa: 0.193, theta: 0.063, eta: 0.745 },
-        { id: "5722057", name: "JPS Machang", lambda: 48.433, kappa: 0.219, theta: 0.000, eta: 0.601 },
-        { id: "5824079", name: "Sg Rasau Pasir Putih", lambda: 51.919, kappa: 0.216, theta: 0.062, eta: 0.560 },
-        { id: "6019004", name: "Rumah Kastam Rantau Pjg", lambda: 49.315, kappa: 0.228, theta: 0.000, eta: 0.609 },
-        { id: "6122064", name: "Setor JPS Kota Bharu", lambda: 60.988, kappa: 0.214, theta: 0.148, eta: 0.616 }
-      ],
-      "Kuala Lumpur": [
-        { id: "3015001", name: "Puchong Drop, K Lumpur", lambda: 69.650, kappa: 0.151, theta: 0.223, eta: 0.880 },
-        { id: "3116003", name: "Ibu Pejabat JPS", lambda: 61.976, kappa: 0.145, theta: 0.122, eta: 0.818 },
-        { id: "3116004", name: "Ibu Pejabat JPS1", lambda: 64.689, kappa: 0.149, theta: 0.174, eta: 0.837 },
-        { id: "3116005", name: "SK Taman Maluri", lambda: 62.765, kappa: 0.132, theta: 0.147, eta: 0.820 },
-        { id: "3116006", name: "Ladang Edinburgh", lambda: 63.483, kappa: 0.146, theta: 0.210, eta: 0.830 },
-        { id: "3216001", name: "Kg. Sungai Tua", lambda: 64.203, kappa: 0.152, theta: 0.250, eta: 0.844 },
-        { id: "3216004", name: "SK Jenis Keb. Kepong", lambda: 73.602, kappa: 0.164, theta: 0.330, eta: 0.874 },
-        { id: "3217001", name: "Ibu Bek. KM16, Gombak", lambda: 66.328, kappa: 0.144, theta: 0.230, eta: 0.859 },
-        { id: "3217002", name: "Emp. Genting Kelang", lambda: 70.200, kappa: 0.165, theta: 0.290, eta: 0.854 },
-        { id: "3217003", name: "Ibu Bek. KM11, Gombak", lambda: 62.609, kappa: 0.152, theta: 0.221, eta: 0.804 },
-        { id: "3217004", name: "Kg. Kuala Seleh, H. Klg", lambda: 61.516, kappa: 0.139, theta: 0.183, eta: 0.837 },
-        { id: "3217005", name: "Kg. Kerdas, Gombak", lambda: 63.241, kappa: 0.162, theta: 0.137, eta: 0.856 },
-        { id: "3317001", name: "Air Terjun Sg. Batu", lambda: 72.992, kappa: 0.162, theta: 0.171, eta: 0.871 },
-        { id: "3317004", name: "Genting Sempah", lambda: 61.335, kappa: 0.157, theta: 0.292, eta: 0.868 }
-      ],
-      "Melaka": [
-        { id: "2222001", name: "Bukit Sebukor", lambda: 95.823, kappa: 0.169, theta: 0.660, eta: 0.947 },
-        { id: "2224038", name: "Chin Chin Tepi Jalan", lambda: 54.241, kappa: 0.161, theta: 0.114, eta: 0.846 },
-        { id: "2321006", name: "Ladang Lendu", lambda: 72.163, kappa: 0.184, theta: 0.376, eta: 0.900 }
-      ],
-      "Negeri Sembilan": [
-        { id: "2719001", name: "Setor JPS Sikamat", lambda: 52.823, kappa: 0.167, theta: 0.159, eta: 0.811 },
-        { id: "2722202", name: "Kg Sawah Lebar K Pilah", lambda: 44.811, kappa: 0.181, theta: 0.137, eta: 0.811 },
-        { id: "2723002", name: "Sungai Kepis", lambda: 54.400, kappa: 0.176, theta: 0.134, eta: 0.842 },
-        { id: "2725083", name: "Ladang New Rompin", lambda: 57.616, kappa: 0.191, theta: 0.224, eta: 0.817 },
-        { id: "2920012", name: "Petaling K Kelawang", lambda: 50.749, kappa: 0.173, theta: 0.235, eta: 0.854 }
-      ],
-      "Pahang": [
-        { id: "2630001", name: "Sungai Pukim", lambda: 46.577, kappa: 0.232, theta: 0.169, eta: 0.687 },
-        { id: "2634193", name: "Sungai Anak Endau", lambda: 66.179, kappa: 0.182, theta: 0.081, eta: 0.589 },
-        { id: "2828173", name: "Kg Gambir", lambda: 47.701, kappa: 0.182, theta: 0.096, eta: 0.715 },
-        { id: "3026156", name: "Pos Iskandar", lambda: 47.452, kappa: 0.184, theta: 0.071, eta: 0.780 },
-        { id: "3121143", name: "Simpang Pelangai", lambda: 57.109, kappa: 0.165, theta: 0.190, eta: 0.867 },
-        { id: "3134165", name: "Dispensari Nenasi", lambda: 61.697, kappa: 0.152, theta: 0.120, eta: 0.593 },
-        { id: "3231163", name: "Kg Unchang", lambda: 55.568, kappa: 0.179, theta: 0.096, eta: 0.649 },
-        { id: "3424081", name: "JPS Temerloh", lambda: 73.141, kappa: 0.173, theta: 0.577, eta: 0.896 },
-        { id: "3533102", name: "Rumah Pam Pahang Tua", lambda: 58.483, kappa: 0.212, theta: 0.197, eta: 0.586 },
-        { id: "3628001", name: "Pintu Kaw. Pulau Kertam", lambda: 50.024, kappa: 0.211, theta: 0.089, eta: 0.716 },
-        { id: "3818054", name: "Setor JPS Raub", lambda: 53.115, kappa: 0.168, theta: 0.191, eta: 0.833 },
-        { id: "3924072", name: "Rmh Pam Paya Kangsar", lambda: 62.301, kappa: 0.167, theta: 0.363, eta: 0.868 },
-        { id: "3930012", name: "Sungai Lembing PCC Mill", lambda: 45.999, kappa: 0.210, theta: 0.074, eta: 0.590 },
-        { id: "4023001", name: "Kg Sungai Yap", lambda: 65.914, kappa: 0.195, theta: 0.252, eta: 0.817 },
-        { id: "4127001", name: "Hulu Tekai Kwsn. 'B'", lambda: 59.861, kappa: 0.226, theta: 0.213, eta: 0.762 },
-        { id: "4219001", name: "Bukit Bentong", lambda: 73.676, kappa: 0.165, theta: 0.384, eta: 0.879 },
-        { id: "4223115", name: "Kg Merting", lambda: 52.731, kappa: 0.184, theta: 0.096, eta: 0.805 },
-        { id: "4513033", name: "Gunung Brinchang", lambda: 42.004, kappa: 0.164, theta: 0.046, eta: 0.802 }
-      ],
-      "Pulau Pinang": [
-        { id: "5204048", name: "Sg Simpang Ampat", lambda: 62.089, kappa: 0.220, theta: 0.402, eta: 0.785 },
-        { id: "5302001", name: "Tangki Air Besar Sg Pinang", lambda: 67.949, kappa: 0.181, theta: 0.299, eta: 0.736 },
-        { id: "5302003", name: "Kolam Tkgn Air Hitam", lambda: 52.459, kappa: 0.191, theta: 0.106, eta: 0.729 },
-        { id: "5303001", name: "Rmh Kebajikan P Pinang", lambda: 57.326, kappa: 0.203, theta: 0.325, eta: 0.791 },
-        { id: "5303053", name: "Komplek Prai", lambda: 52.771, kappa: 0.203, theta: 0.095, eta: 0.717 },
-        { id: "5402001", name: "Klinik Bkt Bendera P Pinang", lambda: 64.504, kappa: 0.196, theta: 0.149, eta: 0.723 },
-        { id: "5402002", name: "Kolam Bersih P Pinang", lambda: 53.785, kappa: 0.181, theta: 0.125, eta: 0.706 },
-        { id: "5404043", name: "Ibu Bekalan Sg Kulim", lambda: 57.832, kappa: 0.188, theta: 0.245, eta: 0.751 },
-        { id: "5504035", name: "Lahar Ikan Mati Kepala Batas", lambda: 48.415, kappa: 0.221, theta: 0.068, eta: 0.692 }
-      ],
-      "Perak": [
-        { id: "4010001", name: "JPS Teluk Intan", lambda: 54.017, kappa: 0.198, theta: 0.084, eta: 0.790 },
-        { id: "4207048", name: "JPS Setiawan", lambda: 56.121, kappa: 0.174, theta: 0.211, eta: 0.854 },
-        { id: "4311001", name: "Pejabat Daerah Kampar", lambda: 69.926, kappa: 0.148, theta: 0.149, eta: 0.813 },
-        { id: "4409091", name: "Rumah Pam Kubang Haji", lambda: 52.343, kappa: 0.164, theta: 0.177, eta: 0.840 },
-        { id: "4511111", name: "Politeknik Ungku Umar", lambda: 70.238, kappa: 0.164, theta: 0.288, eta: 0.872 },
-        { id: "4807016", name: "Bukit Larut Taiping", lambda: 87.236, kappa: 0.165, theta: 0.258, eta: 0.842 },
-        { id: "4811075", name: "Rancangan Belia Perlop", lambda: 58.234, kappa: 0.198, theta: 0.247, eta: 0.856 },
-        { id: "5005003", name: "Jln. Mtg. Buloh Bagan Serai", lambda: 52.752, kappa: 0.163, theta: 0.179, eta: 0.795 },
-        { id: "5207001", name: "Kolam Air JKR Selama", lambda: 59.567, kappa: 0.176, theta: 0.062, eta: 0.807 },
-        { id: "5210069", name: "Stesen Pem. Hutan Lawin", lambda: 52.803, kappa: 0.169, theta: 0.219, eta: 0.838 },
-        { id: "5411066", name: "Kuala Kenderong", lambda: 85.943, kappa: 0.223, theta: 0.248, eta: 0.909 },
-        { id: "5710061", name: "Dispensari Keroh", lambda: 53.116, kappa: 0.168, theta: 0.112, eta: 0.820 }
-      ],
-      "Perlis": [
-        { id: "6401002", name: "Padang Katong, Kangar", lambda: 57.645, kappa: 0.179, theta: 0.254, eta: 0.826 }
-      ],
-      "Selangor": [
-        { id: "2815001", name: "JPS Sungai Manggis", lambda: 56.052, kappa: 0.152, theta: 0.194, eta: 0.857 },
-        { id: "2913001", name: "Pusat Kwln. JPS T Gong", lambda: 63.493, kappa: 0.170, theta: 0.254, eta: 0.872 },
-        { id: "2917001", name: "Setor JPS Kajang", lambda: 59.153, kappa: 0.161, theta: 0.118, eta: 0.812 },
-        { id: "3117070", name: "JPS Ampang", lambda: 65.809, kappa: 0.148, theta: 0.156, eta: 0.837 },
-        { id: "3118102", name: "SK Sungai Lui", lambda: 63.155, kappa: 0.177, theta: 0.122, eta: 0.842 },
-        { id: "3314001", name: "Rumah Pam JPS P Setia", lambda: 62.273, kappa: 0.175, theta: 0.205, eta: 0.841 },
-        { id: "3411017", name: "Setor JPS Tj. Karang", lambda: 68.290, kappa: 0.175, theta: 0.243, eta: 0.894 },
-        { id: "3416002", name: "Kg Kalong Tengah", lambda: 61.811, kappa: 0.161, theta: 0.188, eta: 0.816 },
-        { id: "3516022", name: "Loji Air Kuala Kubu Baru", lambda: 67.793, kappa: 0.176, theta: 0.278, eta: 0.854 },
-        { id: "3710006", name: "Rmh Pam Bagan Terap", lambda: 60.793, kappa: 0.173, theta: 0.185, eta: 0.884 }
-      ],
-      "Terengganu": [
-        { id: "3933001", name: "Hulu Jabor, Kemaman", lambda: 103.519, kappa: 0.228, theta: 0.756, eta: 0.707 },
-        { id: "4131001", name: "Kg, Ban Ho, Kemaman", lambda: 65.158, kappa: 0.164, theta: 0.092, eta: 0.660 },
-        { id: "4234109", name: "JPS Kemaman", lambda: 55.899, kappa: 0.201, theta: 0.000, eta: 0.580 },
-        { id: "4332001", name: "Jambatan Tebak, Kem.", lambda: 61.703, kappa: 0.185, theta: 0.088, eta: 0.637 },
-        { id: "4529001", name: "Rmh Pam Paya Kempian", lambda: 53.693, kappa: 0.194, theta: 0.000, eta: 0.607 },
-        { id: "4529071", name: "SK Pasir Raja", lambda: 48.467, kappa: 0.207, theta: 0.000, eta: 0.600 },
-        { id: "4631001", name: "Almuktafibillah Shah", lambda: 66.029, kappa: 0.199, theta: 0.165, eta: 0.629 },
-        { id: "4734079", name: "SM Sultan Omar, Dungun", lambda: 51.935, kappa: 0.213, theta: 0.020, eta: 0.587 },
-        { id: "4832077", name: "SK Jerangau", lambda: 54.947, kappa: 0.212, theta: 0.026, eta: 0.555 },
-        { id: "4930038", name: "Kg Menerong, Hulu Trg", lambda: 60.436, kappa: 0.204, theta: 0.063, eta: 0.588 },
-        { id: "5029034", name: "Kg Dura, Hulu Trg", lambda: 60.510, kappa: 0.220, theta: 0.087, eta: 0.617 },
-        { id: "5128001", name: "Sungai Gawi, Hulu Trg", lambda: 48.101, kappa: 0.215, theta: 0.027, eta: 0.566 },
-        { id: "5226001", name: "Sg Petualang, Hulu Trg", lambda: 48.527, kappa: 0.228, theta: 0.000, eta: 0.547 },
-        { id: "5328044", name: "Sungai Tong, Setiu", lambda: 52.377, kappa: 0.188, theta: 0.003, eta: 0.558 },
-        { id: "5331048", name: "Setor JPS K Terengganu", lambda: 58.307, kappa: 0.210, theta: 0.123, eta: 0.555 },
-        { id: "5426001", name: "Kg Seladang, Hulu Setiu", lambda: 57.695, kappa: 0.197, theta: 0.000, eta: 0.544 },
-        { id: "5428001", name: "Kg Bt. Hampar, Setiu", lambda: 55.452, kappa: 0.186, theta: 0.000, eta: 0.545 },
-        { id: "5524002", name: "SK Panchor, Setiu Klinik", lambda: 53.430, kappa: 0.206, theta: 0.000, eta: 0.524 },
-        { id: "5725006", name: "Kg Raja, Besut", lambda: 52.521, kappa: 0.225, theta: 0.041, eta: 0.560 }
-      ]
+    const stateFlags = {
+      'Johor': 'flags/johor.png',
+      'Kedah': 'flags/kedah.png',
+      'Kelantan': 'flags/kelantan.png',
+      'Kuala Lumpur': 'flags/kl.png',
+      'Melaka': 'flags/melaka.png',
+      'Negeri Sembilan': 'flags/nsembilan.png',
+      'Pahang': 'flags/pahang.png',
+      'Pulau Pinang': 'flags/penang.png',
+      'Perak': 'flags/perak.png',
+      'Perlis': 'flags/perlis.png',
+      'Selangor': 'flags/selangor.png',
+      'Terengganu': 'flags/terengganu.png'
     };
 
-    function updateStations() {
-      const state = document.getElementById("state").value;
-      const sel = document.getElementById("stationSelect");
-      sel.innerHTML = '<option value="">-- Select Station --</option>';
-      if (state && stationData[state]) {
-        stationData[state].forEach(s => {
-          const o = document.createElement("option");
-          o.value = s.id;
-          o.text = `${s.id} – ${s.name}`;
-          o.dataset.lambda = s.lambda;
-          o.dataset.kappa = s.kappa;
-          o.dataset.theta = s.theta;
-          o.dataset.eta = s.eta;
-          sel.appendChild(o);
-        });
+    function selectState(stateName) {
+      // 1. Highlight selected card
+      document.querySelectorAll('.state-card').forEach(c => c.classList.remove('selected'));
+      document.querySelector(`.state-card[data-state="${stateName}"]`).classList.add('selected');
+
+      // 2. Show selected badge with circular flag
+      const badge = document.getElementById('selectedBadge');
+      document.getElementById('badgeFlag').src = stateFlags[stateName] || '';
+      document.getElementById('badgeFlag').alt = stateName;
+      document.getElementById('badgeText').textContent = `✓ ${stateName}`;
+      badge.classList.add('visible');
+
+      // 3. Show loading
+      document.getElementById('loadingText').classList.add('visible');
+
+      // 4. Fire hidden select change → triggers app.js fetchStations()
+      const hiddenSelect = document.getElementById('state');
+      let opt = hiddenSelect.querySelector(`option[value="${stateName}"]`);
+      if (!opt) {
+        opt = document.createElement('option');
+        opt.value = stateName;
+        opt.text = stateName;
+        hiddenSelect.appendChild(opt);
       }
+      hiddenSelect.value = stateName;
+      hiddenSelect.dispatchEvent(new Event('change'));
+
+      // 5. Hide loading after stations populate
+      setTimeout(() => {
+        document.getElementById('loadingText').classList.remove('visible');
+      }, 1500);
     }
 
-    function autofillConstants() {
-      const sel = document.getElementById("stationSelect");
-      const opt = sel.options[sel.selectedIndex];
-      if (opt.value) {
-        document.getElementById("idfK").value = opt.dataset.lambda;
-        document.getElementById("idfX").value = opt.dataset.kappa;
-        document.getElementById("idfA").value = opt.dataset.theta;
-        document.getElementById("idfN").value = opt.dataset.eta;
-        calculateDesignIntensity();
-      }
-    }
+    function clearState() {
+      // Reset highlights
+      document.querySelectorAll('.state-card').forEach(c => c.classList.remove('selected'));
 
-    document.getElementById("state").addEventListener("change", function () { updateStations(); updateTemporalPattern(); });
-    document.getElementById("stationSelect").addEventListener("change", autofillConstants);
-    document.getElementById("ariYears").addEventListener("change", calculateDesignIntensity);
-    document.getElementById("durationMin").addEventListener("change", function () { calculateDesignIntensity(); updateTemporalPattern(); });
+      // Hide badge
+      document.getElementById('selectedBadge').classList.remove('visible');
+
+      // Reset hidden select
+      const hiddenSelect = document.getElementById('state');
+      hiddenSelect.value = '';
+      hiddenSelect.dispatchEvent(new Event('change'));
+
+      // Reset station dropdown
+      document.getElementById('stationSelect').innerHTML = '<option value="">-- Select Station --</option>';
+
+      // Reset IDF fields
+      ['idfK', 'idfX', 'idfA', 'idfN'].forEach(id => document.getElementById(id).value = '0');
+
+      // Reset displays
+      document.getElementById('designIntensity').textContent = '-';
+      document.getElementById('totalDepthBox').textContent = '-';
+    }
 
     /* ================================================================
-       TABLE 2.6 LOSS PROPERTIES
-       Pervious  : IL = 10 mm fixed, CL = range by soil type
-       Impervious: IL = 1.5 mm fixed, CL = 0 always
+       SOIL / IMPERVIOUS / AREA BAR HANDLERS
     ================================================================ */
     const soilProps = {
       sandy: { min: 10, max: 25, def: 17.5, desc: "High infiltration rate – free draining (10–25 mm/hr)" },
@@ -572,8 +698,7 @@
     function updateSoilLosses() {
       const p = soilProps[document.getElementById("soilType").value];
       const sl = document.getElementById("pervContSlider");
-      sl.min = p.min;
-      sl.max = p.max;
+      sl.min = p.min; sl.max = p.max;
       sl.step = (p.min < 1) ? 0.05 : 0.1;
       sl.value = p.def;
       document.getElementById("pervContMin").textContent = p.min;
@@ -581,197 +706,23 @@
       document.getElementById("pervContDisplay").textContent = p.def.toFixed(1);
       document.getElementById("pervContinuousLoss").value = p.def;
       document.getElementById("soilDescription").textContent = p.desc;
-      calculateLossesTable();
+      if (typeof calculateLossesTable === 'function') calculateLossesTable();
     }
 
     function onSliderChange() {
       const v = parseFloat(document.getElementById("pervContSlider").value);
       document.getElementById("pervContDisplay").textContent = v.toFixed(1);
       document.getElementById("pervContinuousLoss").value = v;
-      calculateLossesTable();
+      if (typeof calculateLossesTable === 'function') calculateLossesTable();
     }
 
     function updateImpervLosses() {
       const p = impervProps[document.getElementById("impervType").value];
       document.getElementById("impInitialLoss").value = p.il.toFixed(1);
       document.getElementById("impervDescription").textContent = p.desc;
-      calculateLossesTable();
+      if (typeof calculateLossesTable === 'function') calculateLossesTable();
     }
 
-    /* ================================================================
-       IDF CALCULATION
-    ================================================================ */
-    function calculateDesignIntensity() {
-      const λ = parseFloat(document.getElementById("idfK").value);
-      const κ = parseFloat(document.getElementById("idfX").value);
-      const θ = parseFloat(document.getElementById("idfA").value);
-      const η = parseFloat(document.getElementById("idfN").value);
-      const T = parseFloat(document.getElementById("ariYears").value);
-      const d = parseFloat(document.getElementById("durationMin").value) / 60;
-      if ([λ, κ, θ, η, T, d].every(isFinite)) {
-        const i = (λ * Math.pow(T, κ)) / Math.pow(d + θ, η);
-        document.getElementById("designIntensity").textContent = i.toFixed(3);
-        document.getElementById("totalDepthBox").textContent = (i * d).toFixed(3);
-      } else {
-        document.getElementById("designIntensity").textContent = "—";
-        document.getElementById("totalDepthBox").textContent = "—";
-      }
-      updateDepthPattern();
-    }
-
-    /* ================================================================
-       TEMPORAL PATTERNS
-    ================================================================ */
-    const stateToRegion = {
-      "Terengganu": "Region1", "Kelantan": "Region1",
-      "Johor": "Region2", "Negeri Sembilan": "Region2", "Melaka": "Region2", "Selangor": "Region2", "Pahang": "Region2",
-      "Perak": "Region3", "Kedah": "Region3", "Pulau Pinang": "Region3", "Perlis": "Region3",
-      "Kuala Lumpur": "Region5"
-    };
-
-    const temporalPatterns = {
-      "Region1": {
-        "5": [0.316, 0.368, 0.316],
-        "10": [0.133, 0.193, 0.211, 0.202, 0.161, 0.1],
-        "15": [0.06, 0.062, 0.084, 0.087, 0.097, 0.12, 0.115, 0.091, 0.087, 0.082, 0.061, 0.054],
-        "30": [0.06, 0.061, 0.071, 0.08, 0.11, 0.132, 0.12, 0.1, 0.078, 0.069, 0.06, 0.059],
-        "60": [0.059, 0.067, 0.071, 0.082, 0.119, 0.13, 0.123, 0.086, 0.073, 0.069, 0.063, 0.057],
-        "120": [0.07, 0.073, 0.083, 0.084, 0.097, 0.106, 0.099, 0.086, 0.084, 0.083, 0.07, 0.064, 0.058, 0.057, 0.05, 0.05, 0.048, 0.046, 0.043, 0.039, 0.028, 0.025, 0.022, 0.016],
-        "180": [0.019, 0.022, 0.027, 0.036, 0.042, 0.044, 0.048, 0.049, 0.05, 0.056, 0.058, 0.068, 0.06, 0.059, 0.053, 0.048, 0.046, 0.044, 0.038, 0.034, 0.03, 0.029, 0.028, 0.019]
-      },
-      "Region2": {
-        "5": [0.255, 0.376, 0.37],
-        "10": [0.124, 0.13, 0.365, 0.152, 0.126, 0.103],
-        "15": [0.053, 0.059, 0.063, 0.087, 0.103, 0.153, 0.11, 0.088, 0.069, 0.06, 0.057, 0.046],
-        "30": [0.053, 0.061, 0.063, 0.08, 0.128, 0.151, 0.129, 0.097, 0.079, 0.062, 0.054, 0.042],
-        "60": [0.044, 0.081, 0.083, 0.09, 0.106, 0.115, 0.114, 0.09, 0.085, 0.081, 0.074, 0.037],
-        "120": [0.045, 0.048, 0.064, 0.106, 0.124, 0.146, 0.127, 0.116, 0.081, 0.056, 0.046, 0.041, 0.083, 0.057, 0.052, 0.047, 0.04, 0.039, 0.033, 0.031, 0.029, 0.028, 0.024, 0.02],
-        "180": [0.022, 0.024, 0.029, 0.031, 0.032, 0.035, 0.039, 0.042, 0.05, 0.054, 0.065, 0.093, 0.06, 0.055, 0.053, 0.048, 0.046, 0.044, 0.038, 0.034, 0.03, 0.029, 0.028, 0.019]
-      },
-      "Region3": {
-        "5": [0.215, 0.395, 0.39],
-        "10": [0.158, 0.161, 0.21, 0.173, 0.158, 0.141],
-        "15": [0.068, 0.074, 0.077, 0.087, 0.099, 0.106, 0.104, 0.098, 0.078, 0.075, 0.072, 0.064],
-        "30": [0.06, 0.085, 0.086, 0.087, 0.1, 0.1, 0.1, 0.088, 0.087, 0.085, 0.063, 0.059],
-        "60": [0.045, 0.07, 0.078, 0.099, 0.113, 0.129, 0.121, 0.099, 0.081, 0.076, 0.047, 0.041],
-        "120": [0.04, 0.06, 0.066, 0.092, 0.114, 0.166, 0.119, 0.113, 0.081, 0.066, 0.046, 0.036, 0.076, 0.055, 0.048, 0.044, 0.041, 0.039, 0.036, 0.034, 0.033, 0.032, 0.031, 0.023],
-        "180": [0.027, 0.031, 0.033, 0.034, 0.035, 0.036, 0.039, 0.042, 0.044, 0.053, 0.056, 0.08, 0.073, 0.06, 0.056, 0.046, 0.045, 0.044, 0.039, 0.035, 0.028, 0.021, 0.017, 0.014]
-      },
-      "Region5": {
-        "5": [0.184, 0.448, 0.368],
-        "10": [0.097, 0.161, 0.4, 0.164, 0.106, 0.072],
-        "15": [0.056, 0.061, 0.065, 0.096, 0.106, 0.164, 0.108, 0.103, 0.068, 0.065, 0.058, 0.05],
-        "30": [0.048, 0.06, 0.078, 0.095, 0.097, 0.175, 0.116, 0.096, 0.093, 0.062, 0.05, 0.03],
-        "60": [0.033, 0.045, 0.092, 0.096, 0.107, 0.161, 0.118, 0.102, 0.096, 0.091, 0.037, 0.023],
-        "120": [0.003, 0.051, 0.074, 0.086, 0.14, 0.206, 0.18, 0.107, 0.081, 0.064, 0.007, 0.003, 0.091, 0.08, 0.075, 0.054, 0.048, 0.035, 0.027, 0.023, 0.017, 0.012, 0.009, 0.002],
-        "180": [0.003, 0.011, 0.015, 0.021, 0.025, 0.032, 0.047, 0.052, 0.055, 0.076, 0.087, 0.103, 0.132, 0.096, 0.053, 0.036, 0.033, 0.03, 0.026, 0.02, 0.017, 0.012, 0.004, 0.001]
-      }
-    };
-
-    function updateDepthPattern() {
-      const totalDepth = parseFloat(document.getElementById("totalDepthBox").textContent);
-      const dg = document.getElementById("depthGrid");
-      const pc = document.querySelectorAll("#patternGrid .patternCell");
-      dg.innerHTML = "";
-      dg.className = document.getElementById("patternGrid").className;
-      if (!isFinite(totalDepth) || pc.length === 0) return;
-      pc.forEach(cell => {
-        const dv = parseFloat(cell.value) * totalDepth;
-        const lbl = cell.parentElement.querySelector("label").textContent;
-        const w = document.createElement("div");
-        w.innerHTML = `<label>${lbl}</label><input class="depthCell depth-box" type="text" value="${dv.toFixed(3)}" readonly style="text-align:center;" />`;
-        dg.appendChild(w);
-      });
-      calculateLossesTable();
-    }
-
-    function updateTemporalPattern() {
-      const state = document.getElementById("state").value;
-      const dMin = parseFloat(document.getElementById("durationMin").value);
-      const grid = document.getElementById("patternGrid");
-      if (!state || !dMin) { grid.innerHTML = ""; updateDepthPattern(); return; }
-      const region = stateToRegion[state];
-      const dk = { 15: "5", 30: "10", 60: "15", 180: "30", 360: "60", 720: "120", 1440: "180" }[dMin];
-      const pattern = (region && dk && temporalPatterns[region]) ? temporalPatterns[region][dk] : null;
-      if (pattern) {
-        grid.innerHTML = "";
-        const bin = dMin / pattern.length;
-        pattern.forEach((v, i) => {
-          const w = document.createElement("div");
-          w.innerHTML = `<label>${(i * bin).toFixed(0)}-${((i + 1) * bin).toFixed(0)} min</label><input class="patternCell" type="number" step="0.001" value="${v.toFixed(3)}" />`;
-          grid.appendChild(w);
-        });
-        grid.className = "row" + (pattern.length <= 6 ? " six" : pattern.length <= 12 ? " twelve" : " twentyfour");
-        updateDepthPattern();
-      }
-    }
-
-    /* ================================================================
-       LOSSES CALCULATION – per Table 2.6
-       Pervious  : IL = 10 mm fixed, CL = slider value
-       Impervious: IL = 1.5 mm fixed, CL = 0 ALWAYS
-    ================================================================ */
-    function calculateLossesTable() {
-      const tbody = document.getElementById("lossesTableBody");
-      const dc = document.querySelectorAll("#depthGrid .depthCell");
-      const pervArea = parseFloat(document.getElementById("perviousArea").value) / 100;
-      const impArea = parseFloat(document.getElementById("imperviousArea").value) / 100;
-      const pervInit = 10.0;  // fixed per Table 2.6
-      const pervCont = parseFloat(document.getElementById("pervContinuousLoss").value);
-      const impInit = parseFloat(document.getElementById("impInitialLoss").value);
-      const impCont = 0.0;   // always 0 per Table 2.6
-
-      if (dc.length === 0 || dc[0].value === "---") {
-        tbody.innerHTML = "<tr><td colspan='8' style='text-align:center;color:var(--muted);'>No data. Complete the inputs above.</td></tr>";
-        ["totalRainfall", "totalLoss", "totalExcess"].forEach(id => document.getElementById(id).textContent = "–");
-        return;
-      }
-
-      const dMin = parseFloat(document.getElementById("durationMin").value);
-      const binH = (dMin / dc.length) / 60;
-      let pervIR = pervInit, impIR = impInit;
-      let sumR = 0, sumL = 0, sumE = 0;
-      tbody.innerHTML = "";
-
-      dc.forEach(cell => {
-        const r = parseFloat(cell.value);
-        if (!isFinite(r)) return;
-        const lbl = cell.parentElement.querySelector("label").textContent;
-
-        // Pervious losses
-        const piu = Math.min(pervIR, r); pervIR -= piu;
-        const pcu = Math.min(pervCont * binH, Math.max(0, r - piu));
-
-        // Impervious losses – CL is always 0
-        const iiu = Math.min(impIR, r); impIR -= iiu;
-        const icu = 0;
-
-        const loss = (pervArea * (piu + pcu)) + (impArea * (iiu + icu));
-        const excess = Math.max(0, r - loss);
-        sumR += r; sumL += loss; sumE += excess;
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-        <td>${lbl}</td>
-        <td>${r.toFixed(2)}</td>
-        <td>${piu.toFixed(2)}</td>
-        <td>${pcu.toFixed(2)}</td>
-        <td>${iiu.toFixed(2)}</td>
-        <td style="color:var(--muted);">0.00</td>
-        <td>${loss.toFixed(2)}</td>
-        <td style="color:var(--ok);font-weight:600;">${excess.toFixed(2)}</td>
-      `;
-        tbody.appendChild(tr);
-      });
-
-      document.getElementById("totalRainfall").textContent = sumR.toFixed(2);
-      document.getElementById("totalLoss").textContent = sumL.toFixed(2);
-      document.getElementById("totalExcess").textContent = sumE.toFixed(2);
-    }
-
-    /* ================================================================
-       AREA BAR
-    ================================================================ */
     function updatePerviousArea() {
       let v = Math.max(0, Math.min(100, parseFloat(document.getElementById("perviousArea").value) || 0));
       document.getElementById("perviousArea").value = v;
@@ -794,23 +745,24 @@
       document.getElementById("pervBarText").textContent = p + "%";
       document.getElementById("impervBarText").textContent = im + "%";
       const h = document.querySelector(".hint");
-      if (Math.abs(p + im - 100) < 0.5) { h.textContent = "✓ Areas sum to 100%"; h.style.color = "var(--ok)"; }
-      else { h.textContent = `Areas sum to ${p + im}%`; h.style.color = "var(--muted)"; }
-      calculateLossesTable();
+      if (Math.abs(p + im - 100) < 0.5) {
+        h.textContent = "✓ Areas sum to 100%";
+        h.style.color = "var(--ok)";
+      } else {
+        h.textContent = `Areas sum to ${p + im}%`;
+        h.style.color = "var(--muted)";
+      }
+      if (typeof calculateLossesTable === 'function') calculateLossesTable();
     }
 
-    /* ================================================================
-       INIT
-    ================================================================ */
+    /* ── INIT ── */
     window.addEventListener("DOMContentLoaded", function () {
-      document.getElementById("state").value = "";
-      document.getElementById("durationMin").value = "";
       updateAreaBar();
       updateSoilLosses();
       updateImpervLosses();
-      updateTemporalPattern();
     });
   </script>
+
 </body>
 
 </html>
