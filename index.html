@@ -13,11 +13,10 @@
     }
 
     .state-picker-title {
-      font-size: 0.82rem;
+      display: block;
+      font-size: .9rem;
       color: var(--muted);
-      margin-bottom: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      margin-bottom: 4px;
     }
 
     .state-grid {
@@ -174,7 +173,7 @@
 
   <main class="container">
     <div
-      style="display:grid;grid-template-columns:380px 1fr;gap:25px;align-items:start;max-width:1200px;margin:0 auto;">
+      style="display:grid;grid-template-columns:420px 1fr;gap:25px;align-items:start;max-width:1200px;margin:0 auto;">
 
       <!-- LEFT: IDF -->
       <section class="card">
@@ -230,7 +229,7 @@
                 <img class="state-flag" src="flags/nsembilan.png" alt="Negeri Sembilan"
                   onerror="this.parentElement.innerHTML='<span class=flag-fallback>🏴</span>'" />
               </div>
-              <span class="state-name">Negeri Sembilan</span>
+              <span class="state-name">N. Sembilan</span>
             </button>
 
             <button class="state-card" data-state="Pahang" onclick="selectState('Pahang')">
