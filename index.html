@@ -163,6 +163,7 @@
       }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -371,6 +372,17 @@
           <hr style="border:0;border-top:1px solid #1a2433;margin:20px 0;">
           <label class="pattern-label">Rainfall Temporal Pattern (mm)</label>
           <div id="depthGrid" class="row six"></div>
+
+          <!-- Hyetograph Chart -->
+          <div id="hyetographSection" style="display:none; margin-top:20px;">
+            <hr style="border:0;border-top:1px solid #1a2433;margin-bottom:20px;">
+            <label class="pattern-label">Rainfall Hyetograph</label>
+            <p style="font-size:0.82rem;color:var(--muted);margin:0 0 12px;">
+              Bars = rainfall depth per time bin &nbsp;|&nbsp; Green line = distribution curve
+            </p>
+            <canvas id="hyetographCanvas" height="120"></canvas>
+          </div>
+
         </section>
 
         <!-- Rainfall Excess -->

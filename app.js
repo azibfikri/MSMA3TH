@@ -2,7 +2,7 @@
    SUPABASE CONFIG
 ================================================================ */
 const SUPABASE_URL = 'https://xmeafzdsowstzuxaezrz.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_e77sEc2jvltcm_eO9UWn1Q_bmefcdZv'; 
+const SUPABASE_KEY = 'sb_publishable_e77sEc2jvltcm_eO9UWn1Q_bmefcdZv';
 
 const HEADERS = {
   'apikey': SUPABASE_KEY,
@@ -15,7 +15,7 @@ const HEADERS = {
 ================================================================ */
 async function fetchStations(state) {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/stations?state=eq.${encodeURIComponent(state)}&order=name.asc`,
+    `${SUPABASE_URL}/rest/v1/stations?state=eq.${encodeURIComponent(state)}&order=station_id.asc`,
     { headers: HEADERS }
   );
   return await res.json();
@@ -27,7 +27,7 @@ async function fetchPattern(region, durationKey) {
     { headers: HEADERS }
   );
   const data = await res.json();
-  return data[0]; // return first match
+  return data[0];
 }
 
 /* ================================================================
@@ -55,16 +55,139 @@ const fmt = (x, d = 3) => (isFinite(x) ? Number(x).toFixed(d) : '—');
 const sum = (arr) => arr.reduce((a, b) => a + (+b || 0), 0);
 
 /* ================================================================
+   HYETOGRAPH CHART
+================================================================ */
+let hyetographChart = null;
+
+function renderHyetograph(labels, depthValues) {
+  const canvas = $('hyetographCanvas');
+  if (!canvas) return;
+
+  // Destroy existing chart if any
+  if (hyetographChart) {
+    hyetographChart.destroy();
+    hyetographChart = null;
+  }
+
+  // If no data, hide the chart section
+  if (!depthValues || depthValues.length === 0) {
+    $('hyetographSection').style.display = 'none';
+    return;
+  }
+
+  // Show chart section
+  $('hyetographSection').style.display = 'block';
+
+  hyetographChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          // Bar dataset — rainfall depth
+          type: 'bar',
+          label: 'Rainfall Depth (mm)',
+          data: depthValues,
+          backgroundColor: 'rgba(78, 168, 255, 0.35)',
+          borderColor: 'rgba(78, 168, 255, 0.8)',
+          borderWidth: 1.5,
+          borderRadius: 3,
+          order: 2
+        },
+        {
+          // Line dataset — connects bar tops (hyetograph curve)
+          type: 'line',
+          label: 'Distribution Curve',
+          data: depthValues,
+          borderColor: '#7be495',
+          borderWidth: 2,
+          pointBackgroundColor: '#7be495',
+          pointBorderColor: '#0b0f14',
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.3,
+          fill: false,
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            color: '#7f8ea3',
+            font: { size: 11 },
+            boxWidth: 12,
+            padding: 10
+          }
+        },
+        tooltip: {
+          backgroundColor: '#111723',
+          borderColor: '#1a2433',
+          borderWidth: 1,
+          titleColor: '#e8f0ff',
+          bodyColor: '#7f8ea3',
+          callbacks: {
+            label: function (ctx) {
+              return ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)} mm`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Time (min)',
+            color: '#7f8ea3',
+            font: { size: 11 }
+          },
+          ticks: {
+            color: '#7f8ea3',
+            font: { size: 10 },
+            maxRotation: 45
+          },
+          grid: {
+            color: 'rgba(26, 36, 51, 0.8)'
+          }
+        },
+        y: {
+          title: {
+            display: true,
+            text: 'Rainfall Depth (mm)',
+            color: '#7f8ea3',
+            font: { size: 11 }
+          },
+          ticks: {
+            color: '#7f8ea3',
+            font: { size: 10 }
+          },
+          grid: {
+            color: 'rgba(26, 36, 51, 0.8)'
+          },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+/* ================================================================
    ON STATE CHANGE → load stations from Supabase
 ================================================================ */
 document.getElementById('state').addEventListener('change', async function () {
   const state = this.value;
   const stationSelect = document.getElementById('stationSelect');
 
-  // Reset station dropdown
   stationSelect.innerHTML = '<option value="">-- Select Station --</option>';
-
-  // Clear IDF fields
   ['idfK', 'idfX', 'idfA', 'idfN'].forEach(id => $(id).value = '');
 
   if (!state) return;
@@ -98,7 +221,6 @@ document.getElementById('stationSelect').addEventListener('change', function () 
   $('idfA').value = opt.dataset.theta;
   $('idfN').value = opt.dataset.eta;
 
-  // Trigger intensity calculation if duration already selected
   calculateDesignIntensity();
 });
 
@@ -120,7 +242,6 @@ async function onDurationOrARIChange() {
     const pattern = await fetchPattern(region, durationKey);
     if (!pattern) return;
 
-    // Update pattern grid
     const grid = $('patternGrid');
     grid.innerHTML = '';
     const binMin = pattern.bin_minutes;
@@ -134,11 +255,9 @@ async function onDurationOrARIChange() {
       grid.appendChild(wrap);
     });
 
-    // Set grid class based on number of bins
     const len = pattern.values.length;
     grid.className = 'row' + (len <= 6 ? ' six' : len <= 12 ? ' twelve' : ' twentyfour');
 
-    // Recalculate
     calculateDesignIntensity();
 
   } catch (err) {
@@ -173,7 +292,7 @@ function calculateDesignIntensity() {
 }
 
 /* ================================================================
-   DEPTH PATTERN UPDATE
+   DEPTH PATTERN UPDATE + HYETOGRAPH
 ================================================================ */
 function updateDepthPattern(totalDepth) {
   const patternCells = document.querySelectorAll('.patternCell');
@@ -181,20 +300,32 @@ function updateDepthPattern(totalDepth) {
   if (!depthGrid) return;
 
   depthGrid.innerHTML = '';
+
+  const labels = [];
+  const depthValues = [];
+
   patternCells.forEach(cell => {
     const norm = parseFloat(cell.value);
     const depthVal = norm * totalDepth;
     const timeLabel = cell.parentElement.querySelector('label').textContent;
+
+    labels.push(timeLabel);
+    depthValues.push(parseFloat(depthVal.toFixed(3)));
+
     const wrap = document.createElement('div');
     wrap.innerHTML = `
       <label>${timeLabel}</label>
-      <input class="depthCell depth-box" type="text" 
+      <input class="depthCell depth-box" type="text"
              value="${depthVal.toFixed(3)}" readonly style="text-align:center;" />
     `;
     depthGrid.appendChild(wrap);
   });
 
   depthGrid.className = $('patternGrid').className;
+
+  // Render hyetograph chart
+  renderHyetograph(labels, depthValues);
+
   calculateLossesTable();
 }
 
