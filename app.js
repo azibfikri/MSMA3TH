@@ -31,7 +31,7 @@ async function fetchPattern(region, durationKey) {
 }
 
 /* ================================================================
-   STATE → REGION MAPPING
+   MAPPINGS
 ================================================================ */
 const stateToRegion = {
   'Terengganu': 'Region1', 'Kelantan': 'Region1',
@@ -63,19 +63,16 @@ function renderHyetograph(labels, depthValues) {
   const canvas = $('hyetographCanvas');
   if (!canvas) return;
 
-  // Destroy existing chart if any
   if (hyetographChart) {
     hyetographChart.destroy();
     hyetographChart = null;
   }
 
-  // If no data, hide the chart section
   if (!depthValues || depthValues.length === 0) {
     $('hyetographSection').style.display = 'none';
     return;
   }
 
-  // Show chart section
   $('hyetographSection').style.display = 'block';
 
   hyetographChart = new Chart(canvas, {
@@ -84,18 +81,16 @@ function renderHyetograph(labels, depthValues) {
       labels: labels,
       datasets: [
         {
-          // Bar dataset — rainfall depth
           type: 'bar',
           label: 'Rainfall Depth (mm)',
           data: depthValues,
-          backgroundColor: 'rgba(78, 168, 255, 0.35)',
-          borderColor: 'rgba(78, 168, 255, 0.8)',
+          backgroundColor: 'rgba(78, 168, 255, 0.3)',
+          borderColor: 'rgba(78, 168, 255, 0.7)',
           borderWidth: 1.5,
           borderRadius: 3,
           order: 2
         },
         {
-          // Line dataset — connects bar tops (hyetograph curve)
           type: 'line',
           label: 'Distribution Curve',
           data: depthValues,
@@ -114,20 +109,12 @@ function renderHyetograph(labels, depthValues) {
     options: {
       responsive: true,
       maintainAspectRatio: true,
-      interaction: {
-        mode: 'index',
-        intersect: false
-      },
+      interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: {
           display: true,
           position: 'top',
-          labels: {
-            color: '#7f8ea3',
-            font: { size: 11 },
-            boxWidth: 12,
-            padding: 10
-          }
+          labels: { color: '#7f8ea3', font: { size: 11 }, boxWidth: 12, padding: 10 }
         },
         tooltip: {
           backgroundColor: '#111723',
@@ -136,43 +123,20 @@ function renderHyetograph(labels, depthValues) {
           titleColor: '#e8f0ff',
           bodyColor: '#7f8ea3',
           callbacks: {
-            label: function (ctx) {
-              return ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)} mm`;
-            }
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)} mm`
           }
         }
       },
       scales: {
         x: {
-          title: {
-            display: true,
-            text: 'Time (min)',
-            color: '#7f8ea3',
-            font: { size: 11 }
-          },
-          ticks: {
-            color: '#7f8ea3',
-            font: { size: 10 },
-            maxRotation: 45
-          },
-          grid: {
-            color: 'rgba(26, 36, 51, 0.8)'
-          }
+          title: { display: true, text: 'Time (min)', color: '#7f8ea3', font: { size: 11 } },
+          ticks: { color: '#7f8ea3', font: { size: 9 }, maxRotation: 45 },
+          grid: { color: 'rgba(26,36,51,0.8)' }
         },
         y: {
-          title: {
-            display: true,
-            text: 'Rainfall Depth (mm)',
-            color: '#7f8ea3',
-            font: { size: 11 }
-          },
-          ticks: {
-            color: '#7f8ea3',
-            font: { size: 10 }
-          },
-          grid: {
-            color: 'rgba(26, 36, 51, 0.8)'
-          },
+          title: { display: true, text: 'Depth (mm)', color: '#7f8ea3', font: { size: 11 } },
+          ticks: { color: '#7f8ea3', font: { size: 10 } },
+          grid: { color: 'rgba(26,36,51,0.8)' },
           beginAtZero: true
         }
       }
@@ -181,15 +145,13 @@ function renderHyetograph(labels, depthValues) {
 }
 
 /* ================================================================
-   ON STATE CHANGE → load stations from Supabase
+   ON STATE CHANGE → fetch stations
 ================================================================ */
 document.getElementById('state').addEventListener('change', async function () {
   const state = this.value;
-  const stationSelect = document.getElementById('stationSelect');
-
+  const stationSelect = $('stationSelect');
   stationSelect.innerHTML = '<option value="">-- Select Station --</option>';
   ['idfK', 'idfX', 'idfA', 'idfN'].forEach(id => $(id).value = '');
-
   if (!state) return;
 
   try {
@@ -210,43 +172,41 @@ document.getElementById('state').addEventListener('change', async function () {
 });
 
 /* ================================================================
-   ON STATION CHANGE → autofill IDF coefficients
+   ON STATION CHANGE → autofill IDF
 ================================================================ */
 document.getElementById('stationSelect').addEventListener('change', function () {
   const opt = this.options[this.selectedIndex];
   if (!opt.value) return;
-
   $('idfK').value = opt.dataset.lambda;
   $('idfX').value = opt.dataset.kappa;
   $('idfA').value = opt.dataset.theta;
   $('idfN').value = opt.dataset.eta;
-
   calculateDesignIntensity();
 });
 
 /* ================================================================
-   ON DURATION/ARI CHANGE → fetch temporal pattern + calculate
+   ON ARI/DURATION CHANGE → fetch pattern
 ================================================================ */
 async function onDurationOrARIChange() {
   const state = $('state').value;
   const durationMin = parseFloat($('durationMin').value);
-
   if (!state || !durationMin) return;
 
   const region = stateToRegion[state];
   const durationKey = durationMap[durationMin];
-
   if (!region || !durationKey) return;
 
   try {
     const pattern = await fetchPattern(region, durationKey);
     if (!pattern) return;
 
+    const binMin = pattern.bin_minutes;
+    const values = pattern.values;
+
+    // Populate hidden patternGrid for compatibility
     const grid = $('patternGrid');
     grid.innerHTML = '';
-    const binMin = pattern.bin_minutes;
-
-    pattern.values.forEach((v, i) => {
+    values.forEach((v, i) => {
       const wrap = document.createElement('div');
       wrap.innerHTML = `
         <label>${i * binMin}-${(i + 1) * binMin} min</label>
@@ -255,8 +215,24 @@ async function onDurationOrARIChange() {
       grid.appendChild(wrap);
     });
 
-    const len = pattern.values.length;
-    grid.className = 'row' + (len <= 6 ? ' six' : len <= 12 ? ' twelve' : ' twentyfour');
+    // Populate normalized pattern TABLE (2-column layout)
+    const ptbody = $('patternTableBody');
+    ptbody.innerHTML = '';
+    for (let i = 0; i < values.length; i += 2) {
+      const tr = document.createElement('tr');
+      const label1 = `${i * binMin}–${(i + 1) * binMin} min`;
+      const label2 = (i + 1 < values.length) ? `${(i + 1) * binMin}–${(i + 2) * binMin} min` : '';
+      const val2 = (i + 1 < values.length) ? values[i + 1].toFixed(3) : '';
+      tr.innerHTML = `
+        <td>${label1}</td>
+        <td><input class="patternCellVis" type="number" step="0.001" value="${values[i].toFixed(3)}" 
+             data-index="${i}" style="width:80px;padding:4px 8px;text-align:center;font-size:0.85rem;" /></td>
+        <td>${label2}</td>
+        <td>${label2 ? `<input class="patternCellVis" type="number" step="0.001" value="${val2}" 
+             data-index="${i + 1}" style="width:80px;padding:4px 8px;text-align:center;font-size:0.85rem;" />` : ''}</td>
+      `;
+      ptbody.appendChild(tr);
+    }
 
     calculateDesignIntensity();
 
@@ -269,7 +245,7 @@ document.getElementById('ariYears').addEventListener('change', onDurationOrARICh
 document.getElementById('durationMin').addEventListener('change', onDurationOrARIChange);
 
 /* ================================================================
-   IDF INTENSITY CALCULATION
+   IDF CALCULATION
 ================================================================ */
 function calculateDesignIntensity() {
   const K = parseFloat($('idfK').value);
@@ -286,46 +262,66 @@ function calculateDesignIntensity() {
   const totalDepth = i_mmhr * t_hr;
 
   $('designIntensity').textContent = fmt(i_mmhr, 3);
-  if ($('totalDepthBox')) $('totalDepthBox').textContent = fmt(totalDepth, 3);
+  $('totalDepthBox').textContent = fmt(totalDepth, 3);
 
   updateDepthPattern(totalDepth);
 }
 
 /* ================================================================
-   DEPTH PATTERN UPDATE + HYETOGRAPH
+   DEPTH PATTERN — TABLE + HIDDEN GRID + HYETOGRAPH
 ================================================================ */
 function updateDepthPattern(totalDepth) {
   const patternCells = document.querySelectorAll('.patternCell');
-  const depthGrid = $('depthGrid');
-  if (!depthGrid) return;
+  const durationMin = parseFloat($('durationMin').value);
+  if (patternCells.length === 0 || !isFinite(totalDepth)) return;
 
-  depthGrid.innerHTML = '';
-
+  const binMin = durationMin / patternCells.length;
   const labels = [];
   const depthValues = [];
 
-  patternCells.forEach(cell => {
+  // Clear hidden depthGrid
+  const depthGrid = $('depthGrid');
+  depthGrid.innerHTML = '';
+
+  // Build depth table (2-column layout)
+  const dtbody = $('depthTableBody');
+  dtbody.innerHTML = '';
+
+  const allDepths = [];
+  patternCells.forEach((cell, i) => {
     const norm = parseFloat(cell.value);
-    const depthVal = norm * totalDepth;
-    const timeLabel = cell.parentElement.querySelector('label').textContent;
+    const dv = norm * totalDepth;
+    const label = `${i * binMin}–${(i + 1) * binMin} min`;
+    labels.push(label);
+    depthValues.push(parseFloat(dv.toFixed(3)));
+    allDepths.push({ label, dv });
 
-    labels.push(timeLabel);
-    depthValues.push(parseFloat(depthVal.toFixed(3)));
-
+    // Add to hidden depthGrid for calculateLossesTable
     const wrap = document.createElement('div');
     wrap.innerHTML = `
-      <label>${timeLabel}</label>
-      <input class="depthCell depth-box" type="text"
-             value="${depthVal.toFixed(3)}" readonly style="text-align:center;" />
+      <label>${label}</label>
+      <input class="depthCell depth-box" type="text" value="${dv.toFixed(3)}" readonly style="text-align:center;" />
     `;
     depthGrid.appendChild(wrap);
   });
 
-  depthGrid.className = $('patternGrid').className;
+  // Populate depth table in 2-column format
+  for (let i = 0; i < allDepths.length; i += 2) {
+    const tr = document.createElement('tr');
+    const d2 = allDepths[i + 1];
+    tr.innerHTML = `
+      <td>${allDepths[i].label}</td>
+      <td style="color:var(--ok);font-weight:600;">${allDepths[i].dv.toFixed(3)}</td>
+      <td>${d2 ? d2.label : ''}</td>
+      <td style="color:var(--ok);font-weight:600;">${d2 ? d2.dv.toFixed(3) : ''}</td>
+    `;
+    dtbody.appendChild(tr);
+  }
 
-  // Render hyetograph chart
+  // Render hyetograph
   renderHyetograph(labels, depthValues);
 
+  // Trigger losses table
   calculateLossesTable();
 }
 
@@ -342,7 +338,6 @@ function calculateLossesTable() {
   const pervInit = 10.0;
   const pervCont = parseFloat($('pervContinuousLoss').value);
   const impInit = parseFloat($('impInitialLoss').value);
-  const impCont = 0.0;
 
   if (depthCells.length === 0) return;
 
@@ -386,7 +381,7 @@ function calculateLossesTable() {
 }
 
 /* ================================================================
-   CALCULATE BUTTON
+   CALCULATE BUTTON (Results tab)
 ================================================================ */
 $('calcBtn').addEventListener('click', function () {
   const pattern = Array.from(document.querySelectorAll('.patternCell')).map(i => parseFloat(i.value));
@@ -398,8 +393,10 @@ $('calcBtn').addEventListener('click', function () {
   const ARI = parseFloat($('ariYears').value);
   const durationMin = parseFloat($('durationMin').value);
 
-  let warn = [];
-  if (Math.abs(patternSum - 1) > 0.02) warn.push(`Pattern sums to ${patternSum.toFixed(3)} (not ~1.000).`);
+  if (![K, x, A, n, ARI, durationMin].every(isFinite)) {
+    alert('Please complete Steps 1–3 before calculating.');
+    return;
+  }
 
   const t_hr = durationMin / 60;
   const i_mmhr = K * Math.pow(ARI, x) / Math.pow(A + t_hr, n);
@@ -414,8 +411,7 @@ $('calcBtn').addEventListener('click', function () {
   const binMin = durationMin / pattern.length;
   const dt_hr = binMin / 60;
 
-  let rows = [];
-  let sumLoss = 0, sumExcess = 0;
+  let rows = [], sumLoss = 0, sumExcess = 0;
 
   binDepths.forEach((depth, b) => {
     const piu = Math.min(pervInitRem, depth); pervInitRem -= piu;
@@ -427,15 +423,15 @@ $('calcBtn').addEventListener('click', function () {
     const mmps = excess / (binMin * 60);
     sumLoss += loss; sumExcess += excess;
 
-    rows.push({
-      label: `${b * binMin}-${(b + 1) * binMin}`,
-      frac: pattern[b], depth, loss, excess, mmps
-    });
+    rows.push({ label: `${b * binMin}–${(b + 1) * binMin}`, frac: pattern[b], depth, loss, excess, mmps });
   });
 
+  // Update summary cards
   $('outI').textContent = fmt(i_mmhr, 3);
   $('outDepth').textContent = fmt(totalDepth, 3);
+  $('outExcess').textContent = fmt(sumExcess, 3);
 
+  // Results table
   const tbody = $('resultTable').querySelector('tbody');
   tbody.innerHTML = '';
   rows.forEach(r => {
@@ -455,9 +451,6 @@ $('calcBtn').addEventListener('click', function () {
   $('sumDepth').textContent = fmt(sum(binDepths), 3);
   $('sumLoss').textContent = fmt(sumLoss, 3);
   $('sumExcess').textContent = fmt(sumExcess, 3);
-
-  $('msg').textContent = warn.length ? `⚠ ${warn.join(' ')}` : '✓ Done.';
-  $('msg').className = warn.length ? 'bad' : 'good';
 });
 
 /* ================================================================
