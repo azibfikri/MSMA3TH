@@ -198,6 +198,8 @@ async function onDurationOrARIChange() {
 
   try {
     const pattern = await fetchPattern(region, durationKey);
+    console.log("DATABASE PATTERN:", pattern);
+    console.log("DATABASE VALUES:", pattern.values);
     if (!pattern) return;
 
     const binMin = pattern.bin_minutes;
@@ -245,6 +247,7 @@ async function onDurationOrARIChange() {
 
 document.getElementById('ariYears').addEventListener('change', onDurationOrARIChange);
 document.getElementById('durationMin').addEventListener('change', onDurationOrARIChange);
+document.getElementById('stationSelect').addEventListener('change', onDurationOrARIChange);
 
 /* ================================================================
    IDF CALCULATION
