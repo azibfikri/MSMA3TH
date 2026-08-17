@@ -215,22 +215,24 @@ async function onDurationOrARIChange() {
       grid.appendChild(wrap);
     });
 
-    // Populate normalized pattern TABLE (2-column layout)
+    // Column-first layout — split into 2 columns, top to bottom
     const ptbody = $('patternTableBody');
     ptbody.innerHTML = '';
-    for (let i = 0; i < values.length; i += 2) {
+    const half = Math.ceil(values.length / 2);
+    for (let i = 0; i < half; i++) {
       const tr = document.createElement('tr');
+      const j = i + half; // second column index
       const label1 = `${i * binMin}–${(i + 1) * binMin} min`;
-      const label2 = (i + 1 < values.length) ? `${(i + 1) * binMin}–${(i + 2) * binMin} min` : '';
-      const val2 = (i + 1 < values.length) ? values[i + 1].toFixed(3) : '';
+      const label2 = j < values.length ? `${j * binMin}–${(j + 1) * binMin} min` : '';
+      const val2 = j < values.length ? values[j].toFixed(3) : '';
       tr.innerHTML = `
-        <td>${label1}</td>
-        <td><input class="patternCellVis" type="number" step="0.001" value="${values[i].toFixed(3)}" 
-             data-index="${i}" style="width:80px;padding:4px 8px;text-align:center;font-size:0.85rem;" /></td>
-        <td>${label2}</td>
-        <td>${label2 ? `<input class="patternCellVis" type="number" step="0.001" value="${val2}" 
-             data-index="${i + 1}" style="width:80px;padding:4px 8px;text-align:center;font-size:0.85rem;" />` : ''}</td>
-      `;
+    <td>${label1}</td>
+    <td><input class="patternCellVis" type="number" step="0.001" value="${values[i].toFixed(3)}"
+         data-index="${i}" style="width:80px;padding:4px 8px;text-align:center;font-size:0.85rem;" /></td>
+    <td>${label2}</td>
+    <td>${label2 ? `<input class="patternCellVis" type="number" step="0.001" value="${val2}"
+         data-index="${j}" style="width:80px;padding:4px 8px;text-align:center;font-size:0.85rem;" />` : ''}</td>
+  `;
       ptbody.appendChild(tr);
     }
 
@@ -306,15 +308,17 @@ function updateDepthPattern(totalDepth) {
   });
 
   // Populate depth table in 2-column format
-  for (let i = 0; i < allDepths.length; i += 2) {
+  const half2 = Math.ceil(allDepths.length / 2);
+  for (let i = 0; i < half2; i++) {
     const tr = document.createElement('tr');
-    const d2 = allDepths[i + 1];
+    const j = i + half2;
+    const d2 = allDepths[j];
     tr.innerHTML = `
-      <td>${allDepths[i].label}</td>
-      <td style="color:var(--ok);font-weight:600;">${allDepths[i].dv.toFixed(3)}</td>
-      <td>${d2 ? d2.label : ''}</td>
-      <td style="color:var(--ok);font-weight:600;">${d2 ? d2.dv.toFixed(3) : ''}</td>
-    `;
+    <td>${allDepths[i].label}</td>
+    <td style="color:var(--ok);font-weight:600;">${allDepths[i].dv.toFixed(3)}</td>
+    <td>${d2 ? d2.label : ''}</td>
+    <td style="color:var(--ok);font-weight:600;">${d2 ? d2.dv.toFixed(3) : ''}</td>
+  `;
     dtbody.appendChild(tr);
   }
 
