@@ -804,33 +804,94 @@
           </div>
         </div>
 
-        <!-- Losses table -->
-        <p class="section-title">Losses &amp; Excess Rainfall (mm)</p>
-        <div class="tableWrap">
-          <table id="lossesTable">
+        <!-- TABLE 1: ESTIMATION OF LOSSES -->
+        <p class="section-title" style="margin-top:20px;">
+          Estimation of Losses based on Table 2.6
+        </p>
+
+        <!-- Area % header display -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div style="background:rgba(78,168,255,0.08);border:1px solid rgba(78,168,255,0.2);
+                      border-radius:8px;padding:8px 12px;text-align:center;">
+            <span style="color:#4ea8ff;font-size:0.8rem;font-weight:600;">Pervious Area</span>
+            <span style="color:var(--ok);font-weight:700;margin-left:8px;">
+              <span id="lossEstPervPct">40</span>%
+            </span>
+          </div>
+          <div style="background:rgba(127,142,163,0.08);border:1px solid rgba(127,142,163,0.2);
+                      border-radius:8px;padding:8px 12px;text-align:center;">
+            <span style="color:#7f8ea3;font-size:0.8rem;font-weight:600;">Impervious Area</span>
+            <span style="color:var(--ok);font-weight:700;margin-left:8px;">
+              <span id="lossEstImpPct">60</span>%
+            </span>
+          </div>
+        </div>
+
+        <div class="tableWrap" style="margin-bottom:24px;">
+          <table id="lossEstTable">
             <thead>
               <tr>
-                <th>Time (min)</th>
-                <th>Rainfall (mm)</th>
-                <th>Perv. Initial</th>
-                <th>Perv. Cont.</th>
-                <th>Imperv. Initial</th>
-                <th>Imperv. Cont.</th>
-                <th>Total Loss</th>
-                <th>Excess (mm)</th>
+                <th rowspan="2" style="text-align:left;vertical-align:middle;">Time Bin (min)</th>
+                <th colspan="3" style="text-align:center;border-bottom:1px solid #26344a;color:#4ea8ff;">
+                  Pervious Area
+                </th>
+                <th colspan="3" style="text-align:center;border-bottom:1px solid #26344a;color:#7f8ea3;">
+                  Impervious Area
+                </th>
+                <th rowspan="2" style="vertical-align:middle;">Total Loss (mm)</th>
+              </tr>
+              <tr>
+                <th style="color:#4ea8ff;">Initial Loss (mm)</th>
+                <th style="color:#4ea8ff;">Cont. Loss (mm/hr)</th>
+                <th style="color:#4ea8ff;">Cont. Loss (mm)</th>
+                <th style="color:#7f8ea3;">Initial Loss (mm)</th>
+                <th style="color:#7f8ea3;">Cont. Loss (mm/hr)</th>
+                <th style="color:#7f8ea3;">Cont. Loss (mm)</th>
               </tr>
             </thead>
-            <tbody id="lossesTableBody"></tbody>
+            <tbody id="lossEstTableBody">
+              <tr>
+                <td colspan="8" style="text-align:center;color:var(--muted);padding:16px;">
+                  Complete Steps 1–3 to see loss estimation.
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th colspan="7" style="text-align:right;">Total Loss (mm)</th>
+                <th id="lossEstTotal">–</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- TABLE 2: RAINFALL EXCESS (RUNOFF) -->
+        <p class="section-title">Rainfall Excess (Runoff)</p>
+        <div class="tableWrap">
+          <table id="runoffTable">
+            <thead>
+              <tr>
+                <th>Time Bin (min)</th>
+                <th>Rainfall (mm)</th>
+                <th>Total Loss (mm)</th>
+                <th>Excess (mm)</th>
+                <th>Excess (mm/s)</th>
+              </tr>
+            </thead>
+            <tbody id="runoffTableBody">
+              <tr>
+                <td colspan="5" style="text-align:center;color:var(--muted);padding:16px;">
+                  Complete Steps 1–3 to see runoff.
+                </td>
+              </tr>
+            </tbody>
             <tfoot>
               <tr>
                 <th>Total</th>
-                <th id="totalRainfall">–</th>
-                <th>–</th>
-                <th>–</th>
-                <th>–</th>
-                <th style="color:var(--muted);">0.00</th>
-                <th id="totalLoss">–</th>
-                <th id="totalExcess">–</th>
+                <th id="runoffTotalRain">–</th>
+                <th id="runoffTotalLoss">–</th>
+                <th id="runoffTotalExcess">–</th>
+                <th>—</th>
               </tr>
             </tfoot>
           </table>
@@ -1119,6 +1180,23 @@
       }
       if (typeof calculateLossesTable === 'function') calculateLossesTable();
     }
+
+    // Rebuild loss tables when user changes area % or soil type
+    document.getElementById('perviousArea').addEventListener('input', function () {
+      updatePerviousArea();
+      buildLossEstimationTable();
+      calculateRunoffTable();
+    });
+    document.getElementById('imperviousArea').addEventListener('input', function () {
+      updateImperviousArea();
+      buildLossEstimationTable();
+      calculateRunoffTable();
+    });
+    document.getElementById('soilType').addEventListener('change', function () {
+      updateSoilLosses();
+      buildLossEstimationTable();
+      calculateRunoffTable();
+    });
 
     /* ── INIT ── */
     window.addEventListener("DOMContentLoaded", function () {
