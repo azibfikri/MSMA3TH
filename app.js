@@ -166,23 +166,18 @@ function renderHyetograph(labels, depthValues) {
    - Flattens at minimum once fully saturated
    - Sandy: slow decay | Loam: medium | Clay: fast
 ================================================================ */
-function generateContRates(numBins, maxRate, minRate, k) {
+function generateContRates(numBins, startRate, minRate, k) {
+  // startRate = user-selected slider value (first bin mm/hr)
+  // Horton decay from startRate → minRate exponentially
   const rates = [];
-
-  // Default k if not provided
   const decayK = k || 2.5;
 
   for (let i = 0; i < numBins; i++) {
     if (numBins === 1) {
-      rates.push(maxRate);
+      rates.push(startRate);
     } else {
-      // Normalised time: 0 at first bin, 1 at last bin
       const t = i / (numBins - 1);
-
-      // Horton's equation
-      const rate = minRate + (maxRate - minRate) * Math.exp(-decayK * t);
-
-      // Never go below minimum (fully saturated state)
+      const rate = minRate + (startRate - minRate) * Math.exp(-decayK * t);
       rates.push(parseFloat(Math.max(minRate, rate).toFixed(2)));
     }
   }
@@ -226,7 +221,8 @@ function buildLossEstimationTable() {
   if (impPctEl) impPctEl.textContent = impPct;
 
   // Generate interpolated continuous loss rates (mm/hr)
-  const contRates = generateContRates(numBins, range.max, range.min, range.k);
+  const sliderVal = parseFloat(document.getElementById('pervContinuousLoss').value) || range.max;
+  const contRates = generateContRates(numBins, sliderVal, range.min, range.k);
 
   tbody.innerHTML = '';
   let totalLossSum = 0;
@@ -470,7 +466,8 @@ function calculateRunoffTable() {
   const impPct = parseFloat($('imperviousArea').value) || 60;
   const soilType = $('soilType') ? $('soilType').value : 'loam';
   const range = soilRanges[soilType] || soilRanges.loam;
-  const contRates = generateContRates(numBins, range.max, range.min, range.k);
+  const sliderVal = parseFloat(document.getElementById('pervContinuousLoss').value) || range.max;
+  const contRates = generateContRates(numBins, sliderVal, range.min, range.k);
 
   tbody.innerHTML = '';
   let sumRain = 0, sumLoss = 0, sumExcess = 0;
@@ -545,7 +542,8 @@ $('calcBtn').addEventListener('click', function () {
   const impPct = parseFloat($('imperviousArea').value);
   const soilType = $('soilType') ? $('soilType').value : 'loam';
   const range = soilRanges[soilType] || soilRanges.loam;
-  const contRates = generateContRates(numBins, range.max, range.min, range.k);
+  const sliderVal = parseFloat(document.getElementById('pervContinuousLoss').value) || range.max;
+  const contRates = generateContRates(numBins, sliderVal, range.min, range.k);
   const dt_hr = binMin / 60;
 
   let rows = [], sumLoss = 0, sumExcess = 0;

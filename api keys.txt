@@ -1,0 +1,2 @@
+URL: https://xmeafzdsowstzuxaezrz.supabase.co/rest/v1/
+KEY: sb_publishable_e77sEc2jvltcm_eO9UWn1Q_bmefcdZv

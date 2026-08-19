@@ -1130,13 +1130,17 @@
       const sl = document.getElementById("pervContSlider");
       sl.min = p.min; sl.max = p.max;
       sl.step = (p.min < 1) ? 0.05 : 0.1;
-      sl.value = p.def;
+
+      // AUTO SLIDE TO MAX — user starts at max rate
+      sl.value = p.max;
       document.getElementById("pervContMin").textContent = p.min;
       document.getElementById("pervContMax").textContent = p.max;
-      document.getElementById("pervContDisplay").textContent = p.def.toFixed(1);
-      document.getElementById("pervContinuousLoss").value = p.def;
+      document.getElementById("pervContDisplay").textContent = parseFloat(p.max).toFixed(1);
+      document.getElementById("pervContinuousLoss").value = p.max;
       document.getElementById("soilDescription").textContent = p.desc;
       if (typeof calculateLossesTable === 'function') calculateLossesTable();
+      if (typeof buildLossEstimationTable === 'function') buildLossEstimationTable();
+      if (typeof calculateRunoffTable === 'function') calculateRunoffTable();
     }
 
     function onSliderChange() {
