@@ -865,6 +865,16 @@
           </table>
         </div>
 
+        <!-- Loss Estimation Chart -->
+        <div style="margin-top:20px;margin-bottom:24px;">
+          <p class="section-title">Infiltration Loss — Horton Decay Curve</p>
+          <p style="font-size:0.82rem;color:var(--muted);margin:0 0 12px;">
+            Bars = continuous loss per time bin (mm) &nbsp;|&nbsp;
+            Yellow line = infiltration rate decay (mm/hr)
+          </p>
+          <canvas id="lossEstChartCanvas" height="100"></canvas>
+        </div>
+
         <!-- TABLE 2: RAINFALL EXCESS (RUNOFF) -->
         <p class="section-title">Rainfall Excess (Runoff)</p>
         <div class="tableWrap">
@@ -1029,6 +1039,7 @@
       document.getElementById('depthGrid').innerHTML = '';
       document.getElementById('hyetographSection').style.display = 'none';
       if (hyetographChart) { hyetographChart.destroy(); hyetographChart = null; }
+      if (lossEstChart) { lossEstChart.destroy(); lossEstChart = null; }
 
       // Reset catchment
       document.getElementById('perviousArea').value = 40;

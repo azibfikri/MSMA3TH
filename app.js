@@ -55,9 +55,9 @@ const durationMap = {
    clay  → fast decay (saturates quickly)
 ================================================================ */
 const soilRanges = {
-  sandy: { min: 10.0, max: 25.0, k: 1.5 },
-  loam: { min: 3.0, max: 10.0, k: 2.5 },
-  clay: { min: 0.5, max: 3.0, k: 4.0 }
+  sandy: { min: 10.0, max: 25.0, k: 2.5 },
+  loam: { min: 3.0, max: 10.0, k: 3.5 },
+  clay: { min: 0.5, max: 3.0, k: 5.0 }
 };
 
 /* ================================================================
@@ -144,6 +144,132 @@ function renderHyetograph(labels, depthValues) {
           title: { display: true, text: 'Depth (mm)', color: '#7f8ea3', font: { size: 11 } },
           ticks: { color: '#7f8ea3', font: { size: 10 } },
           grid: { color: 'rgba(26,36,51,0.8)' },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+/* ================================================================
+   LOSS ESTIMATION CHART — Horton Decay
+   Bars = cont. loss per bin (mm)
+   Line = infiltration rate decay curve (mm/hr) on secondary axis
+================================================================ */
+let lossEstChart = null;
+
+function renderLossEstChart(labels, contRatesMmhr, contRatesMm) {
+  const canvas = $('lossEstChartCanvas');
+  if (!canvas) return;
+
+  if (lossEstChart) {
+    lossEstChart.destroy();
+    lossEstChart = null;
+  }
+
+  if (!labels || labels.length === 0) return;
+
+  lossEstChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          // Bars — cont. loss per bin (mm)
+          type: 'bar',
+          label: 'Cont. Loss per Bin (mm)',
+          data: contRatesMm,
+          backgroundColor: 'rgba(78, 168, 255, 0.3)',
+          borderColor: 'rgba(78, 168, 255, 0.7)',
+          borderWidth: 1.5,
+          borderRadius: 3,
+          yAxisID: 'yMm',
+          order: 2
+        },
+        {
+          // Line — infiltration rate decay (mm/hr)
+          type: 'line',
+          label: 'Infiltration Rate (mm/hr)',
+          data: contRatesMmhr,
+          borderColor: '#ffd166',
+          borderWidth: 2.5,
+          pointBackgroundColor: '#ffd166',
+          pointBorderColor: '#0b0f14',
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.4,
+          fill: false,
+          yAxisID: 'yMmhr',
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            color: '#7f8ea3',
+            font: { size: 11 },
+            boxWidth: 12,
+            padding: 10
+          }
+        },
+        tooltip: {
+          backgroundColor: '#111723',
+          borderColor: '#1a2433',
+          borderWidth: 1,
+          titleColor: '#e8f0ff',
+          bodyColor: '#7f8ea3',
+          callbacks: {
+            label: function (ctx) {
+              if (ctx.dataset.yAxisID === 'yMmhr') {
+                return ` Infiltration Rate: ${ctx.parsed.y.toFixed(2)} mm/hr`;
+              }
+              return ` Cont. Loss: ${ctx.parsed.y.toFixed(3)} mm`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Time Bin (min)',
+            color: '#7f8ea3',
+            font: { size: 11 }
+          },
+          ticks: { color: '#7f8ea3', font: { size: 9 }, maxRotation: 45 },
+          grid: { color: 'rgba(26,36,51,0.6)' }
+        },
+        yMm: {
+          type: 'linear',
+          position: 'left',
+          title: {
+            display: true,
+            text: 'Cont. Loss per Bin (mm)',
+            color: '#4ea8ff',
+            font: { size: 10 }
+          },
+          ticks: { color: '#4ea8ff', font: { size: 10 } },
+          grid: { color: 'rgba(26,36,51,0.6)' },
+          beginAtZero: true
+        },
+        yMmhr: {
+          type: 'linear',
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Infiltration Rate (mm/hr)',
+            color: '#ffd166',
+            font: { size: 10 }
+          },
+          ticks: { color: '#ffd166', font: { size: 10 } },
+          grid: { drawOnChartArea: false },
           beginAtZero: true
         }
       }
@@ -263,6 +389,21 @@ function buildLossEstimationTable() {
   // Update total row
   const totalEl = $('lossEstTotal');
   if (totalEl) totalEl.textContent = totalLossSum.toFixed(2);
+
+  // Collect data for chart
+  const chartLabels = [];
+  const chartRatesMmhr = [];
+  const chartRatesMm = [];
+
+  for (let i = 0; i < numBins; i++) {
+    chartLabels.push(`${i * binMin}–${(i + 1) * binMin}`);
+    chartRatesMmhr.push(contRates[i]);
+    const mm = parseFloat((contRates[i] / 60 * binMin).toFixed(3));
+    chartRatesMm.push(mm);
+  }
+
+  // Render chart
+  renderLossEstChart(chartLabels, chartRatesMmhr, chartRatesMm);
 }
 
 /* ================================================================
