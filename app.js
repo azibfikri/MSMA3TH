@@ -233,9 +233,9 @@ function buildLossEstimationTable() {
     // PERVIOUS
     const pervInitMM = i === 0 ? 10.00 : 0.00;
     const contRateMmhr = contRates[i];
-    // Row 0: contMM = 10mm (same as initial loss per picture)
-    // Row 1+: contMM = rate/60 * binMin
-    const pervContMM = i === 0 ? 10.00 : parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
+    // Row 0: contMM = rate/60 * binMin (same formula as all other rows)
+    // Initial loss (10mm) is handled separately in pervInitMM
+    const pervContMM = parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
 
     // IMPERVIOUS
     const impInitMM = i === 0 ? 1.50 : 0.00;
@@ -476,8 +476,7 @@ function calculateRunoffTable() {
     const rainfall = parseFloat(cell.value);
     if (!isFinite(rainfall)) return;
     const lbl = cell.parentElement.querySelector('label').textContent;
-
-    const pervContMM = i === 0 ? 10.00 : parseFloat((contRates[i] / 60 * binMin).toFixed(2));
+    const pervContMM = parseFloat((contRates[i] / 60 * binMin).toFixed(2));
     const impInitMM = i === 0 ? 1.50 : 0.00;
 
     const totalLoss = parseFloat(((pervContMM * pervPct + impInitMM * impPct) / 100).toFixed(2));
@@ -549,7 +548,7 @@ $('calcBtn').addEventListener('click', function () {
   let rows = [], sumLoss = 0, sumExcess = 0;
 
   binDepths.forEach((depth, b) => {
-    const pervContMM = b === 0 ? 10.00 : parseFloat((contRates[b] / 60 * binMin).toFixed(2));
+    const pervContMM = parseFloat((contRates[b] / 60 * binMin).toFixed(2));
     const impInitMM = b === 0 ? 1.50 : 0.00;
     const loss = Math.min(parseFloat(((pervContMM * pervPct + impInitMM * impPct) / 100).toFixed(2)), depth);
     const excess = Math.max(0, depth - loss);
