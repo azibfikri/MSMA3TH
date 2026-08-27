@@ -166,6 +166,40 @@
       filter: none;
     }
 
+    /* Radio option rows */
+    .radio-opt {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid #1a2433;
+      background: #0b111a;
+      cursor: pointer;
+      font-size: 0.82rem;
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+
+    .radio-opt:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .radio-opt input[type=radio] {
+      width: auto;
+      margin: 0;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .radio-opt:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(78, 168, 255, 0.08);
+      color: var(--text);
+    }
+
     /* ================================================================
        STEP 1 – STATE/STATION
     ================================================================ */
@@ -766,39 +800,125 @@
 
         <!-- Loss panels -->
         <div class="loss-grid">
-
-          <!-- PERVIOUS -->
+          <!-- PERVIOUS SURFACE SETTINGS -->
           <div class="box"
             style="background:linear-gradient(to bottom,rgba(78,168,255,.05),transparent);border-color:rgba(78,168,255,.3);">
-            <h4 style="margin:0 0 12px;font-size:.95rem;color:#4ea8ff;">Pervious Surface</h4>
-            <div style="margin-bottom:12px;">
-              <label>Initial loss (mm) <span class="fixed-badge">Fixed 10 mm – Table 2.6</span></label>
-              <input id="pervInitialLoss" type="number" value="10.0" readonly />
-            </div>
-            <div style="margin-bottom:10px;">
+            <h4 style="margin:0 0 14px;font-size:.95rem;color:#4ea8ff;">Pervious Surface — Horton Infiltration</h4>
+
+            <!-- SOIL TYPE -->
+            <div style="margin-bottom:14px;">
               <label>Soil Type</label>
               <select id="soilType" style="width:100%;">
-                <option value="sandy">Sandy Soil (10–25 mm/hr)</option>
-                <option value="loam" selected>Loam Soil (3–10 mm/hr)</option>
-                <option value="clay">Clay Soil (0.5–3 mm/hr)</option>
+                <option value="sandy">Sandy Soil</option>
+                <option value="loam" selected>Loam Soil</option>
+                <option value="clay">Clay Soil</option>
               </select>
             </div>
-            <div>
-              <label>Continuous loss (mm/hr) <span class="fixed-badge">Table 2.6</span></label>
+
+            <!-- MOISTURE CONDITION -->
+            <div style="margin-bottom:14px;">
+              <label>Moisture Condition
+                <span class="fixed-badge">affects f₀</span>
+              </label>
+              <div style="display:grid;gap:6px;margin-top:6px;">
+                <label class="radio-opt" id="opt-dry-sparse">
+                  <input type="radio" name="moistCond" value="dry_sparse" checked onchange="onMoistureChange()" />
+                  <span>Dry — little/no vegetation <span class="fixed-badge">default</span></span>
+                </label>
+                <label class="radio-opt" id="opt-dry-dense">
+                  <input type="radio" name="moistCond" value="dry_dense" onchange="onMoistureChange()" />
+                  <span>Dry — dense vegetation <span style="color:var(--muted);font-size:0.75rem;">(f₀ ×
+                      2)</span></span>
+                </label>
+                <label class="radio-opt" id="opt-moist-fc">
+                  <input type="radio" name="moistCond" value="moist_fc" onchange="onMoistureChange()" />
+                  <span>Moist — field capacity <span style="color:var(--muted);font-size:0.75rem;">(f₀ ÷
+                      3)</span></span>
+                </label>
+                <label class="radio-opt" id="opt-moist-sat">
+                  <input type="radio" name="moistCond" value="moist_sat" onchange="onMoistureChange()" />
+                  <span>Moist — near saturation <span style="color:var(--muted);font-size:0.75rem;">(f₀ ≈
+                      fc)</span></span>
+                </label>
+                <label class="radio-opt" id="opt-moist-partial">
+                  <input type="radio" name="moistCond" value="moist_partial" onchange="onMoistureChange()" />
+                  <span>Moist — partially dried <span style="color:var(--muted);font-size:0.75rem;">(f₀ ÷
+                      1.5–2.5)</span></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- MAX INFIL RATE f0 -->
+            <div style="margin-bottom:14px;">
+              <label>Max. Infiltration Rate, f₀ (mm/hr)
+                <span class="fixed-badge">auto-calculated</span>
+              </label>
+              <input id="f0Display" type="number" value="76.20" readonly
+                style="background:#080d12;color:var(--ok);font-weight:700;border-style:dashed;" />
+              <div id="f0Note" style="color:var(--muted);font-size:0.78rem;margin-top:4px;">
+                Dry soil, little/no vegetation — base value
+              </div>
+
+              <!-- f0 slider — only shown for moist conditions -->
+              <div id="f0SliderSection" style="display:none;margin-top:8px;">
+                <div class="range-row">
+                  <span class="range-label" id="f0SliderMin">0</span>
+                  <input id="f0Slider" type="range" min="0" max="100" step="0.1" value="0"
+                    oninput="onF0SliderChange()" />
+                  <span class="range-label" id="f0SliderMax">100</span>
+                  <span class="range-val"><span id="f0SliderDisplay">0</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- MIN INFIL RATE fc — slider within soil range -->
+            <div style="margin-bottom:14px;">
+              <label>Min. Infiltration Rate, fc (mm/hr)
+                <span class="fixed-badge">saturated hydraulic conductivity</span>
+              </label>
               <div class="range-row">
-                <span class="range-label" id="pervContMin">3</span>
-                <input id="pervContSlider" type="range" min="3" max="10" step="0.1" value="6.5"
-                  oninput="onSliderChange()" />
-                <span class="range-label" id="pervContMax">10</span>
-                <span class="range-val"><span id="pervContDisplay">6.5</span></span>
+                <span class="range-label" id="fcMin">1.02</span>
+                <input id="fcSlider" type="range" min="1.02" max="10.92" step="0.01" value="5.97"
+                  oninput="onFcSliderChange()" />
+                <span class="range-label" id="fcMax">10.92</span>
+                <span class="range-val"><span id="fcDisplay">5.97</span></span>
               </div>
-              <input id="pervContinuousLoss" type="hidden" value="6.5" />
-            </div>
-            <div
-              style="margin-top:10px;padding:8px;background:rgba(78,168,255,.08);border-radius:6px;font-size:.82rem;">
-              <div id="soilDescription" style="color:var(--muted);">Moderate infiltration rate – balanced (3–10 mm/hr)
+              <input id="fcValue" type="hidden" value="5.97" />
+              <div style="color:var(--muted);font-size:0.75rem;margin-top:4px;">
+                Range based on Rawls et al. (1983) soil characteristics
               </div>
             </div>
+
+            <!-- DECAY CONSTANT k -->
+            <div style="margin-bottom:14px;">
+              <label>Decay Constant, k (1/hr)</label>
+              <div class="range-row">
+                <span class="range-label">0</span>
+                <input id="kSlider" type="range" min="0" max="7" step="0.1" value="2.5" oninput="onKSliderChange()" />
+                <span class="range-label">7</span>
+                <span class="range-val"><span id="kDisplay">2.5</span></span>
+              </div>
+              <input id="kValue" type="hidden" value="2.5" />
+              <!-- k meaning notes -->
+              <div id="kNote" style="margin-top:8px;padding:8px 10px;border-radius:7px;font-size:0.78rem;
+                background:rgba(78,168,255,0.06);border:1px solid rgba(78,168,255,0.15);color:var(--muted);">
+                k = 2.5 — Moderate decay (Loam)
+              </div>
+            </div>
+
+            <!-- INFO NOTE -->
+            <div style="padding:8px 10px;background:rgba(255,209,102,0.06);border:1px solid rgba(255,209,102,0.2);
+              border-radius:8px;font-size:0.78rem;color:var(--warn);line-height:1.5;">
+              <strong>Horton's Equation:</strong> f(t) = fc + (f₀ − fc) × e<sup>−kt</sup><br />
+              <span style="color:var(--muted);">
+                f₀ = max rate &nbsp;|&nbsp; fc = min rate &nbsp;|&nbsp;
+                k = decay constant &nbsp;|&nbsp; t = normalised time (0→1)
+              </span>
+            </div>
+
+            <!-- Hidden inputs for compatibility -->
+            <input id="pervInitialLoss" type="hidden" value="10.0" />
+            <input id="pervContinuousLoss" type="hidden" value="76.20" />
             <input id="impInitialLoss" type="hidden" value="1.5" />
             <input id="impContinuousLoss" type="hidden" value="0.0" />
           </div>
@@ -1119,52 +1239,280 @@
     }
 
     /* ================================================================
-       SOIL / IMPERVIOUS HANDLERS
+       SOIL / IMPERVIOUS HANDLERS — Horton Parameters
     ================================================================ */
-    const soilProps = {
-      sandy: { min: 10, max: 25, def: 17.5, desc: "High infiltration – free draining (10–25 mm/hr)" },
-      loam: { min: 3, max: 10, def: 6.5, desc: "Moderate infiltration – balanced (3–10 mm/hr)" },
-      clay: { min: 0.5, max: 3, def: 1.75, desc: "Low infiltration – poor drainage (0.5–3 mm/hr)" }
+
+    // Base max infiltration rates — Dry soil, little/no vegetation
+    // Source: Horton Infiltration Parameters (converted from in/hr × 25.4)
+    const soilBaseF0 = {
+      sandy: 127.00,   // 5 in/hr × 25.4
+      loam: 76.20,   // 3 in/hr × 25.4
+      clay: 25.40    // 1 in/hr × 25.4
     };
 
-    const impervProps = {
-      concrete: { il: 1.5, desc: "Standard pavement (CL = 0 per Table 2.6)" },
-      roof: { il: 1.0, desc: "Building roof (CL = 0 per Table 2.6)" },
-      compacted: { il: 1.5, desc: "Compacted surface (CL = 0 per Table 2.6)" }
+    // Min infiltration rate ranges (fc) — saturated hydraulic conductivity
+    // Source: Rawls et al. (1983), converted from in/hr × 25.4
+    const soilFcRange = {
+      sandy: { min: 29.97, max: 120.40, def: 75.19 },  // 1.18–4.74 in/hr
+      loam: { min: 1.02, max: 10.92, def: 5.97 },  // 0.04–0.43 in/hr
+      clay: { min: 0.25, max: 0.51, def: 0.38 }   // 0.01–0.02 in/hr
     };
 
-    document.getElementById("soilType").addEventListener("change", updateSoilLosses);
-    document.getElementById("impervType").addEventListener("change", updateImpervLosses);
+    // k notes based on value
+    function getKNote(k) {
+      if (k === 0) return 'k = 0 — Constant rate, no decay (simplest assumption)';
+      if (k < 0.5) return `k = ${k} — Very slow decay`;
+      if (k < 2.0) return `k = ${k} — Slow decay (well-drained soils)`;
+      if (k < 3.5) return `k = ${k} — Moderate decay (loam soils)`;
+      if (k < 5.5) return `k = ${k} — Fast decay (clay soils)`;
+      return `k = ${k} — Very fast decay — worst case for drainage design ⚠`;
+    }
 
-    function updateSoilLosses() {
-      const p = soilProps[document.getElementById("soilType").value];
-      const sl = document.getElementById("pervContSlider");
-      sl.min = p.min; sl.max = p.max;
-      sl.step = (p.min < 1) ? 0.05 : 0.1;
+    // Calculate f0 based on soil type + moisture condition
+    function calcF0(soilType, moistCond) {
+      const base = soilBaseF0[soilType];
+      const fc = parseFloat(document.getElementById('fcValue').value);
+      switch (moistCond) {
+        case 'dry_sparse': return base;                          // default
+        case 'dry_dense': return base * 2;                     // × 2
+        case 'moist_fc': return base / 3;                     // ÷ 3
+        case 'moist_sat': return fc;                           // ≈ fc
+        case 'moist_partial': return base / 2.0;                 // ÷ 1.5–2.5 (midpoint 2.0)
+        default: return base;
+      }
+    }
 
-      // AUTO SLIDE TO MAX — user starts at max rate
-      sl.value = p.max;
-      document.getElementById("pervContMin").textContent = p.min;
-      document.getElementById("pervContMax").textContent = p.max;
-      document.getElementById("pervContDisplay").textContent = parseFloat(p.max).toFixed(1);
-      document.getElementById("pervContinuousLoss").value = p.max;
-      document.getElementById("soilDescription").textContent = p.desc;
-      if (typeof calculateLossesTable === 'function') calculateLossesTable();
+    function getF0Note(soilType, moistCond) {
+      const base = soilBaseF0[soilType];
+      switch (moistCond) {
+        case 'dry_sparse':
+          return `Dry soil, little/no vegetation — base value ${base.toFixed(2)} mm/hr`;
+        case 'dry_dense':
+          return `Dry soil, dense vegetation — base × 2 = ${(base * 2).toFixed(2)} mm/hr`;
+        case 'moist_fc':
+          return `Moist, field capacity — base ÷ 3 = ${(base / 3).toFixed(2)} mm/hr`;
+        case 'moist_sat':
+          return `Moist, near saturation — f₀ ≈ fc (minimum rate)`;
+        case 'moist_partial':
+          return `Moist, partially dried — base ÷ 2.0 = ${(base / 2.0).toFixed(2)} mm/hr (midpoint of 1.5–2.5)`;
+        default:
+          return '';
+      }
+    }
+
+    function updateSoilUI() {
+      const soilType = document.getElementById('soilType').value;
+      const moistCond = document.querySelector('input[name="moistCond"]:checked').value;
+      const fcRange = soilFcRange[soilType];
+      const k = Number(document.getElementById('kValue').value);
+
+      // Base values
+      const A = soilBaseF0[soilType];        // dry sparse
+      const B = A * 2;                        // dry dense
+      const fc = parseFloat(document.getElementById('fcValue').value);
+
+      // Calculate f0 based on moisture condition
+      let f0, f0Fixed = false;
+      let sliderMin, sliderMax, sliderStart;
+
+      switch (moistCond) {
+        case 'dry_sparse':
+          f0 = A;
+          f0Fixed = true;
+          break;
+
+        case 'dry_dense':
+          f0 = B;
+          f0Fixed = true;
+          break;
+
+        case 'moist_fc':
+          sliderMin = parseFloat((A / 3).toFixed(2));
+          sliderMax = parseFloat((B / 3).toFixed(2));
+          sliderStart = sliderMin;  // start at min (worst case)
+          f0Fixed = false;
+          break;
+
+        case 'moist_sat':
+          sliderMin = parseFloat((fc / 1.5).toFixed(2));
+          sliderMax = parseFloat((fc * 1.5).toFixed(2));
+          sliderStart = fc;  // start at fc (centre)
+          f0Fixed = false;
+          break;
+
+        case 'moist_partial':
+          sliderMin = parseFloat((A / 2.5).toFixed(2));
+          sliderMax = parseFloat((B / 1.5).toFixed(2));
+          sliderStart = sliderMin;  // start at min (worst case)
+          f0Fixed = false;
+          break;
+      }
+
+      // Update f0 display
+      const f0Input = document.getElementById('f0Display');
+      const f0Note = document.getElementById('f0Note');
+
+      if (f0Fixed) {
+        // Dry conditions — fixed value, no slider needed
+        f0Input.value = f0.toFixed(2);
+        f0Input.readOnly = true;
+        f0Input.style.borderStyle = 'dashed';
+        f0Input.style.color = 'var(--ok)';
+        document.getElementById('pervContinuousLoss').value = f0.toFixed(2);
+        if (f0Note) f0Note.textContent = moistCond === 'dry_sparse'
+          ? `Dry soil, little/no vegetation — base value`
+          : `Dry soil, dense vegetation — base × 2`;
+      } else {
+        // Moist conditions — show f0 slider
+        const f0Slider = document.getElementById('f0Slider');
+        if (f0Slider) {
+          f0Slider.min = sliderMin;
+          f0Slider.max = sliderMax;
+          f0Slider.step = sliderMin < 5 ? 0.01 : 0.1;
+          f0Slider.value = sliderStart;
+        }
+        f0Input.value = sliderStart.toFixed(2);
+        f0Input.readOnly = false;
+        f0Input.style.borderStyle = 'solid';
+        f0Input.style.color = 'var(--ok)';
+        document.getElementById('pervContinuousLoss').value = sliderStart.toFixed(2);
+        document.getElementById('f0SliderMin').textContent = sliderMin.toFixed(2);
+        document.getElementById('f0SliderMax').textContent = sliderMax.toFixed(2);
+        document.getElementById('f0SliderDisplay').textContent = sliderStart.toFixed(2);
+        if (f0Note) f0Note.textContent = '';
+      }
+
+      // Show/hide f0 slider section
+      const f0SliderSection = document.getElementById('f0SliderSection');
+      if (f0SliderSection) {
+        f0SliderSection.style.display = f0Fixed ? 'none' : 'block';
+      }
+
+      // Update fc slider range
+      const fcSlider = document.getElementById('fcSlider');
+      fcSlider.min = fcRange.min;
+      fcSlider.max = fcRange.max;
+      fcSlider.step = fcRange.min < 1 ? 0.01 : 0.1;
+
+      // Keep fc within range
+      let fcVal = parseFloat(document.getElementById('fcValue').value);
+      if (fcVal < fcRange.min || fcVal > fcRange.max) {
+        fcVal = fcRange.min;
+        fcSlider.value = fcVal;
+        document.getElementById('fcDisplay').textContent = fcVal.toFixed(2);
+        document.getElementById('fcValue').value = fcVal;
+      }
+      document.getElementById('fcMin').textContent = fcRange.min.toFixed(2);
+      document.getElementById('fcMax').textContent = fcRange.max.toFixed(2);
+
+      // Update k note
+      document.getElementById('kNote').textContent = getKNote(k);
+
+      // FIX: grey out fc when k=0
+      const fcSliderEl = document.getElementById('fcSlider');
+      const fcDisplayEl = document.getElementById('fcDisplay');
+      const fcNoteEl = document.getElementById('fcNote');
+      if (k === 0) {
+        fcSliderEl.disabled = true;
+        fcSliderEl.style.opacity = '0.3';
+        if (fcDisplayEl) fcDisplayEl.style.color = 'var(--muted)';
+        if (fcNoteEl) fcNoteEl.textContent = 'fc has no effect when k = 0';
+      } else {
+        fcSliderEl.disabled = false;
+        fcSliderEl.style.opacity = '1';
+        if (fcDisplayEl) fcDisplayEl.style.color = 'var(--ok)';
+        if (fcNoteEl) fcNoteEl.textContent = '';
+      }
+
       if (typeof buildLossEstimationTable === 'function') buildLossEstimationTable();
       if (typeof calculateRunoffTable === 'function') calculateRunoffTable();
     }
 
-    function onSliderChange() {
-      const v = parseFloat(document.getElementById("pervContSlider").value);
-      document.getElementById("pervContDisplay").textContent = v.toFixed(1);
-      document.getElementById("pervContinuousLoss").value = v;
-      if (typeof calculateLossesTable === 'function') calculateLossesTable();
+    function onF0SliderChange() {
+      const v = parseFloat(document.getElementById('f0Slider').value);
+      document.getElementById('f0SliderDisplay').textContent = v.toFixed(2);
+      document.getElementById('f0Display').value = v.toFixed(2);
+      document.getElementById('pervContinuousLoss').value = v.toFixed(2);
+      if (typeof buildLossEstimationTable === 'function') buildLossEstimationTable();
+      if (typeof calculateRunoffTable === 'function') calculateRunoffTable();
     }
 
+    function onMoistureChange() { updateSoilUI(); }
+
+    function onFcSliderChange() {
+      const v = parseFloat(document.getElementById('fcSlider').value);
+      document.getElementById('fcDisplay').textContent = v.toFixed(2);
+      document.getElementById('fcValue').value = v;
+
+      // Only update fc-dependent parts, NOT f0 slider position
+      // Recalculate near saturation range if that condition is selected
+      const moistCond = document.querySelector('input[name="moistCond"]:checked').value;
+      if (moistCond === 'moist_sat') {
+        const fc = v;
+        const sliderMin = parseFloat((fc / 1.5).toFixed(2));
+        const sliderMax = parseFloat((fc * 1.5).toFixed(2));
+        const f0Slider = document.getElementById('f0Slider');
+        // Update range but KEEP current slider position if still within range
+        const currentF0 = parseFloat(f0Slider.value);
+        f0Slider.min = sliderMin;
+        f0Slider.max = sliderMax;
+        document.getElementById('f0SliderMin').textContent = sliderMin.toFixed(2);
+        document.getElementById('f0SliderMax').textContent = sliderMax.toFixed(2);
+        // Only clamp if out of new range
+        if (currentF0 < sliderMin || currentF0 > sliderMax) {
+          f0Slider.value = fc;
+          document.getElementById('f0SliderDisplay').textContent = fc.toFixed(2);
+          document.getElementById('f0Display').value = fc.toFixed(2);
+          document.getElementById('pervContinuousLoss').value = fc.toFixed(2);
+        }
+      }
+
+      // Update k note and fc greying only
+      const k = Number(document.getElementById('kValue').value);
+      const fcSliderEl = document.getElementById('fcSlider');
+      const fcDisplayEl = document.getElementById('fcDisplay');
+      const fcNoteEl = document.getElementById('fcNote');
+      if (k === 0) {
+        fcSliderEl.disabled = true;
+        fcSliderEl.style.opacity = '0.3';
+        if (fcDisplayEl) fcDisplayEl.style.color = 'var(--muted)';
+        if (fcNoteEl) fcNoteEl.textContent = 'fc has no effect when k = 0';
+      } else {
+        fcSliderEl.disabled = false;
+        fcSliderEl.style.opacity = '1';
+        if (fcDisplayEl) fcDisplayEl.style.color = 'var(--ok)';
+        if (fcNoteEl) fcNoteEl.textContent = '';
+      }
+
+      if (typeof buildLossEstimationTable === 'function') buildLossEstimationTable();
+      if (typeof calculateRunoffTable === 'function') calculateRunoffTable();
+    }
+
+    function onKSliderChange() {
+      const v = parseFloat(document.getElementById('kSlider').value);
+      document.getElementById('kDisplay').textContent = v.toFixed(1);
+      document.getElementById('kValue').value = v;
+      document.getElementById('kNote').textContent = getKNote(v);
+      if (typeof buildLossEstimationTable === 'function') buildLossEstimationTable();
+      if (typeof calculateRunoffTable === 'function') calculateRunoffTable();
+    }
+
+    function updateSoilLosses() { updateSoilUI(); }
+    function onSliderChange() { updateSoilUI(); }
+
+    document.getElementById("soilType").addEventListener("change", updateSoilUI);
+    document.querySelectorAll('input[name="moistCond"]').forEach(r =>
+      r.addEventListener('change', updateSoilUI)
+    );
+
+    const impervProps = {
+      concrete: { il: 1.5 },
+      roof: { il: 1.0 },
+      compacted: { il: 1.5 }
+    };
+
     function updateImpervLosses() {
-      const p = impervProps[document.getElementById("impervType").value];
-      document.getElementById("impInitialLoss").value = p.il.toFixed(1);
-      if (typeof calculateLossesTable === 'function') calculateLossesTable();
+      // Impervious always IL=1.5, CL=0 per Table 2.6
     }
 
     function updatePerviousArea() {
@@ -1190,34 +1538,20 @@
       document.getElementById("impervBarText").textContent = im + "%";
       const h = document.querySelector(".hint");
       if (h) {
-        if (Math.abs(p + im - 100) < 0.5) { h.textContent = "✓ Areas sum to 100%"; h.style.color = "var(--ok)"; }
-        else { h.textContent = `Areas sum to ${p + im}%`; h.style.color = "var(--muted)"; }
+        if (Math.abs(p + im - 100) < 0.5) {
+          h.textContent = "✓ Areas sum to 100%"; h.style.color = "var(--ok)";
+        } else {
+          h.textContent = `Areas sum to ${p + im}%`; h.style.color = "var(--muted)";
+        }
       }
-      if (typeof calculateLossesTable === 'function') calculateLossesTable();
+      if (typeof buildLossEstimationTable === 'function') buildLossEstimationTable();
+      if (typeof calculateRunoffTable === 'function') calculateRunoffTable();
     }
-
-    // Rebuild loss tables when user changes area % or soil type
-    document.getElementById('perviousArea').addEventListener('input', function () {
-      updatePerviousArea();
-      buildLossEstimationTable();
-      calculateRunoffTable();
-    });
-    document.getElementById('imperviousArea').addEventListener('input', function () {
-      updateImperviousArea();
-      buildLossEstimationTable();
-      calculateRunoffTable();
-    });
-    document.getElementById('soilType').addEventListener('change', function () {
-      updateSoilLosses();
-      buildLossEstimationTable();
-      calculateRunoffTable();
-    });
 
     /* ── INIT ── */
     window.addEventListener("DOMContentLoaded", function () {
       updateAreaBar();
-      updateSoilLosses();
-      updateImpervLosses();
+      updateSoilUI();
     });
   </script>
 

@@ -48,24 +48,77 @@ const durationMap = {
 };
 
 /* ================================================================
-   SOIL PROPERTIES (Table 2.6) + Horton decay constants
-   k controls how fast infiltration rate decays:
-   sandy → slow decay (stays permeable longer)
-   loam  → medium decay
-   clay  → fast decay (saturates quickly)
-================================================================ */
-const soilRanges = {
-  sandy: { min: 10.0, max: 25.0, k: 2.5 },
-  loam: { min: 3.0, max: 10.0, k: 3.5 },
-  clay: { min: 0.5, max: 3.0, k: 5.0 }
-};
-
-/* ================================================================
    HELPERS
 ================================================================ */
 const $ = (id) => document.getElementById(id);
 const fmt = (x, d = 3) => (isFinite(x) ? Number(x).toFixed(d) : '—');
 const sum = (arr) => arr.reduce((a, b) => a + (+b || 0), 0);
+
+/* ================================================================
+   READ HORTON PARAMETERS FROM UI
+   Helper to safely read f0, fc, k from UI elements.
+   FIX Issue 3: read k directly — do NOT use || fallback
+               because 0 || 2.5 = 2.5 (JavaScript falsy bug)
+================================================================ */
+function getHortonParams() {
+  const f0El = document.getElementById('pervContinuousLoss');
+  const fcEl = document.getElementById('fcValue');
+  const kEl  = document.getElementById('kValue');
+
+  const f0 = f0El ? parseFloat(f0El.value) : 76.20;
+  const fc = fcEl ? parseFloat(fcEl.value) : 5.97;
+  // FIX: use Number() to avoid 0 || fallback bug
+  const k  = kEl  ? Number(kEl.value)      : 2.5;
+
+  return {
+    f0: isFinite(f0) ? f0 : 76.20,
+    fc: isFinite(fc) ? fc : 5.97,
+    k:  isFinite(k)  ? k  : 2.5
+  };
+}
+
+/* ================================================================
+   GENERATE CONTINUOUS LOSS RATES — Horton's Equation
+   f(t) = fc + (f0 - fc) × e^(-k × t)
+
+   Returns array of length numBins.
+   Index 0 of returned array = f0 (max rate, t=0)
+   Index 1..N decay towards fc
+
+   NOTE: In the TABLE display:
+   - Bin 0 (first time bin): cont loss shown as 0 (only initial loss)
+   - Bin 1 (second time bin): uses contRates[0] = f0 ← starts at max
+   - Bin 2: uses contRates[1], Bin 3: uses contRates[2], etc.
+   This shift ensures bin 1 always shows f0 exactly.
+
+   FIX Issue 3: k=0 → constant flat line (no decay)
+                uses Number() in getHortonParams() to avoid || bug
+================================================================ */
+function generateContRates(numBins, f0, fc, k) {
+  const rates = [];
+  // numBins-1 because bin 0 is always 0 in display,
+  // so we generate rates for bins 1..numBins-1 only (numBins-1 values)
+  // but we generate numBins values for indexing convenience
+  const decayBins = numBins > 1 ? numBins - 1 : 1;
+
+  for (let i = 0; i < numBins; i++) {
+    if (k === 0) {
+      // FIX Issue 3: k=0 → constant rate = f0 for ALL bins (flat line)
+      rates.push(parseFloat(f0.toFixed(2)));
+    } else if (decayBins === 1) {
+      rates.push(parseFloat(f0.toFixed(2)));
+    } else {
+      // Normalised time: i=0 → t=0 (rate=f0), i=decayBins-1 → t=1 (rate≈fc)
+      const t = i / (decayBins - 1);
+      const rate = fc + (f0 - fc) * Math.exp(-k * t);
+      rates.push(parseFloat(Math.max(fc, rate).toFixed(2)));
+    }
+  }
+  return rates;
+  // contRates[0] = f0 (used for display bin 1)
+  // contRates[1] = decayed value (used for display bin 2)
+  // contRates[i] used for display bin i+1
+}
 
 /* ================================================================
    HYETOGRAPH CHART
@@ -154,7 +207,8 @@ function renderHyetograph(labels, depthValues) {
 /* ================================================================
    LOSS ESTIMATION CHART — Horton Decay
    Bars = cont. loss per bin (mm)
-   Line = infiltration rate decay curve (mm/hr) on secondary axis
+   Line = infiltration rate decay (mm/hr) on secondary axis
+   FIX Issue 3 & 5: chart reflects actual k=0 flat line correctly
 ================================================================ */
 let lossEstChart = null;
 
@@ -175,7 +229,6 @@ function renderLossEstChart(labels, contRatesMmhr, contRatesMm) {
       labels: labels,
       datasets: [
         {
-          // Bars — cont. loss per bin (mm)
           type: 'bar',
           label: 'Cont. Loss per Bin (mm)',
           data: contRatesMm,
@@ -187,7 +240,6 @@ function renderLossEstChart(labels, contRatesMmhr, contRatesMm) {
           order: 2
         },
         {
-          // Line — infiltration rate decay (mm/hr)
           type: 'line',
           label: 'Infiltration Rate (mm/hr)',
           data: contRatesMmhr,
@@ -210,26 +262,16 @@ function renderLossEstChart(labels, contRatesMmhr, contRatesMm) {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: {
-          display: true,
-          position: 'top',
-          labels: {
-            color: '#7f8ea3',
-            font: { size: 11 },
-            boxWidth: 12,
-            padding: 10
-          }
+          display: true, position: 'top',
+          labels: { color: '#7f8ea3', font: { size: 11 }, boxWidth: 12, padding: 10 }
         },
         tooltip: {
-          backgroundColor: '#111723',
-          borderColor: '#1a2433',
-          borderWidth: 1,
-          titleColor: '#e8f0ff',
-          bodyColor: '#7f8ea3',
+          backgroundColor: '#111723', borderColor: '#1a2433', borderWidth: 1,
+          titleColor: '#e8f0ff', bodyColor: '#7f8ea3',
           callbacks: {
             label: function (ctx) {
-              if (ctx.dataset.yAxisID === 'yMmhr') {
+              if (ctx.dataset.yAxisID === 'yMmhr')
                 return ` Infiltration Rate: ${ctx.parsed.y.toFixed(2)} mm/hr`;
-              }
               return ` Cont. Loss: ${ctx.parsed.y.toFixed(3)} mm`;
             }
           }
@@ -237,37 +279,20 @@ function renderLossEstChart(labels, contRatesMmhr, contRatesMm) {
       },
       scales: {
         x: {
-          title: {
-            display: true,
-            text: 'Time Bin (min)',
-            color: '#7f8ea3',
-            font: { size: 11 }
-          },
+          title: { display: true, text: 'Time Bin (min)', color: '#7f8ea3', font: { size: 11 } },
           ticks: { color: '#7f8ea3', font: { size: 9 }, maxRotation: 45 },
           grid: { color: 'rgba(26,36,51,0.6)' }
         },
         yMm: {
-          type: 'linear',
-          position: 'left',
-          title: {
-            display: true,
-            text: 'Cont. Loss per Bin (mm)',
-            color: '#4ea8ff',
-            font: { size: 10 }
-          },
+          type: 'linear', position: 'left',
+          title: { display: true, text: 'Cont. Loss per Bin (mm)', color: '#4ea8ff', font: { size: 10 } },
           ticks: { color: '#4ea8ff', font: { size: 10 } },
           grid: { color: 'rgba(26,36,51,0.6)' },
           beginAtZero: true
         },
         yMmhr: {
-          type: 'linear',
-          position: 'right',
-          title: {
-            display: true,
-            text: 'Infiltration Rate (mm/hr)',
-            color: '#ffd166',
-            font: { size: 10 }
-          },
+          type: 'linear', position: 'right',
+          title: { display: true, text: 'Infiltration Rate (mm/hr)', color: '#ffd166', font: { size: 10 } },
           ticks: { color: '#ffd166', font: { size: 10 } },
           grid: { drawOnChartArea: false },
           beginAtZero: true
@@ -278,46 +303,29 @@ function renderLossEstChart(labels, contRatesMmhr, contRatesMm) {
 }
 
 /* ================================================================
-   GENERATE CONTINUOUS LOSS RATES — Horton's Equation
-   f(t) = fc + (f0 - fc) × e^(-k × t)
-
-   f0 = maxRate (initial infiltration rate)
-   fc = minRate (final/minimum infiltration rate)
-   k  = decay constant (soil-dependent)
-   t  = normalised time (0 → 1 across all bins)
-
-   Physical meaning:
-   - Rate starts high (soil dry, absorbs fast)
-   - Drops exponentially as soil saturates
-   - Flattens at minimum once fully saturated
-   - Sandy: slow decay | Loam: medium | Clay: fast
-================================================================ */
-function generateContRates(numBins, startRate, minRate, k) {
-  // startRate = user-selected slider value (first bin mm/hr)
-  // Horton decay from startRate → minRate exponentially
-  const rates = [];
-  const decayK = k || 2.5;
-
-  for (let i = 0; i < numBins; i++) {
-    if (numBins === 1) {
-      rates.push(startRate);
-    } else {
-      const t = i / (numBins - 1);
-      const rate = minRate + (startRate - minRate) * Math.exp(-decayK * t);
-      rates.push(parseFloat(Math.max(minRate, rate).toFixed(2)));
-    }
-  }
-  return rates;
-}
-
-/* ================================================================
    BUILD ESTIMATION OF LOSSES TABLE
-   Requirements:
-   - Pervious: IL=10mm (row 0 only), CL interpolated max→min (mm/hr)
-               CL mm = row0: 10mm, row1+: rate/60*binMin
-   - Impervious: IL=1.5mm (row 0 only), CL=0 always
-   - Total loss = (pervContMM * pervPct + impInitMM * impPct) / 100
-   - Updates when area % or soil type changes
+
+   FIXED LOGIC (Issues 1, 2, 3, 5):
+
+   BIN 0 (first time bin):
+   - pervInitMM   = 10.00 mm (fixed)
+   - contRateMmhr = 0.00  (no continuous loss yet)
+   - pervContMM   = 0.00
+   - impInitMM    = 1.50 mm (fixed)
+   - impContMM    = 0.00
+   - totalLoss    = (pervInitMM × pervPct + impInitMM × impPct) / 100
+                  = (10.00 × 40 + 1.50 × 60) / 100 = 4.90
+
+   BIN 1+ (second bin onwards):
+   - pervInitMM   = 0.00
+   - contRateMmhr = contRates[i-1]  ← SHIFT: bin1 uses contRates[0]=f0
+   - pervContMM   = contRateMmhr / 60 × binMin
+   - impInitMM    = 0.00
+   - impContMM    = 0.00
+   - totalLoss    = (pervContMM × pervPct + impContMM × impPct) / 100
+                  = (pervContMM × pervPct) / 100
+
+   FIX Issue 5: when k=0, fc slider is greyed out + note shown
 ================================================================ */
 function buildLossEstimationTable() {
   const tbody = $('lossEstTableBody');
@@ -330,47 +338,84 @@ function buildLossEstimationTable() {
     return;
   }
 
-  const numBins = depthCells.length;
+  const numBins     = depthCells.length;
   const durationMin = parseFloat($('durationMin').value);
-  const binMin = durationMin / numBins;
-
-  // Get user inputs
-  const pervPct = parseFloat($('perviousArea').value) || 40;
-  const impPct = parseFloat($('imperviousArea').value) || 60;
-  const soilType = $('soilType') ? $('soilType').value : 'loam';
-  const range = soilRanges[soilType] || soilRanges.loam;
+  const binMin      = durationMin / numBins;
+  const pervPct     = parseFloat($('perviousArea').value) || 40;
+  const impPct      = parseFloat($('imperviousArea').value) || 60;
 
   // Update header percentages
-  const pervPctEl = $('lossEstPervPct');
-  const impPctEl = $('lossEstImpPct');
-  if (pervPctEl) pervPctEl.textContent = pervPct;
-  if (impPctEl) impPctEl.textContent = impPct;
+  if ($('lossEstPervPct')) $('lossEstPervPct').textContent = pervPct;
+  if ($('lossEstImpPct'))  $('lossEstImpPct').textContent  = impPct;
 
-  // Generate interpolated continuous loss rates (mm/hr)
-  const sliderVal = parseFloat(document.getElementById('pervContinuousLoss').value) || range.max;
-  const contRates = generateContRates(numBins, sliderVal, range.min, range.k);
+  // Read Horton params safely
+  const { f0, fc, k } = getHortonParams();
+
+  // FIX Issue 5: grey out fc slider when k=0
+  const fcSlider  = $('fcSlider');
+  const fcDisplay = $('fcDisplay');
+  const fcNote    = $('fcNote');
+  if (fcSlider) {
+    if (k === 0) {
+      fcSlider.disabled = true;
+      fcSlider.style.opacity = '0.3';
+      if (fcDisplay) fcDisplay.style.color = 'var(--muted)';
+      if (fcNote) {
+        fcNote.textContent = 'fc has no effect when k = 0 (constant rate = f₀)';
+        fcNote.style.color = 'var(--warn)';
+      }
+    } else {
+      fcSlider.disabled = false;
+      fcSlider.style.opacity = '1';
+      if (fcDisplay) fcDisplay.style.color = 'var(--ok)';
+      if (fcNote) {
+        fcNote.textContent = 'Range based on Rawls et al. (1983) soil characteristics';
+        fcNote.style.color = 'var(--muted)';
+      }
+    }
+  }
+
+  // Generate rates — contRates[0]=f0, contRates[1..] decay
+  const contRates = generateContRates(numBins, f0, fc, k);
 
   tbody.innerHTML = '';
   let totalLossSum = 0;
 
+  // Arrays for chart (skip bin 0 since cont=0, start from bin 1)
+  const chartLabels    = [];
+  const chartRatesMmhr = [];
+  const chartRatesMm   = [];
+
   for (let i = 0; i < numBins; i++) {
     const binLabel = `${i * binMin}–${(i + 1) * binMin}`;
 
-    // PERVIOUS
-    const pervInitMM = i === 0 ? 10.00 : 0.00;
-    const contRateMmhr = contRates[i];
-    // Row 0: contMM = rate/60 * binMin (same formula as all other rows)
-    // Initial loss (10mm) is handled separately in pervInitMM
-    const pervContMM = parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
+    let pervInitMM, contRateMmhr, pervContMM, impInitMM, totalLoss;
 
-    // IMPERVIOUS
-    const impInitMM = i === 0 ? 1.50 : 0.00;
-    const impContMmhr = 0.00;
-    const impContMM = 0.00;
+    if (i === 0) {
+      // ── BIN 0: only initial losses ──
+      pervInitMM   = 10.00;
+      contRateMmhr = 0.00;
+      pervContMM   = 0.00;
+      impInitMM    = 1.50;
+      // FIX Issue 1: total = (pervInit×pervPct + impInit×impPct) / 100
+      totalLoss = parseFloat(((pervInitMM * pervPct + impInitMM * impPct) / 100).toFixed(2));
+    } else {
+      // ── BIN 1+: continuous loss only ──
+      pervInitMM   = 0.00;
+      // FIX Issue 2: shift index by -1 so bin 1 uses contRates[0] = f0
+      contRateMmhr = contRates[i - 1];
+      pervContMM   = parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
+      impInitMM    = 0.00;
+      // FIX Issue 2: total = (pervContMM×pervPct + 0×impPct) / 100
+      totalLoss = parseFloat(((pervContMM * pervPct) / 100).toFixed(2));
+    }
 
-    // TOTAL LOSS = (pervContMM * pervPct + impInitMM * impPct) / 100
-    const totalLoss = parseFloat(((pervContMM * pervPct + impInitMM * impPct) / 100).toFixed(2));
     totalLossSum += totalLoss;
+
+    // Chart data: show rate and mm for all bins (0 for bin 0)
+    chartLabels.push(binLabel);
+    chartRatesMmhr.push(contRateMmhr);
+    chartRatesMm.push(pervContMM);
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -386,24 +431,82 @@ function buildLossEstimationTable() {
     tbody.appendChild(tr);
   }
 
-  // Update total row
-  const totalEl = $('lossEstTotal');
-  if (totalEl) totalEl.textContent = totalLossSum.toFixed(2);
-
-  // Collect data for chart
-  const chartLabels = [];
-  const chartRatesMmhr = [];
-  const chartRatesMm = [];
-
-  for (let i = 0; i < numBins; i++) {
-    chartLabels.push(`${i * binMin}–${(i + 1) * binMin}`);
-    chartRatesMmhr.push(contRates[i]);
-    const mm = parseFloat((contRates[i] / 60 * binMin).toFixed(3));
-    chartRatesMm.push(mm);
-  }
+  if ($('lossEstTotal')) $('lossEstTotal').textContent = totalLossSum.toFixed(2);
 
   // Render chart
   renderLossEstChart(chartLabels, chartRatesMmhr, chartRatesMm);
+}
+
+/* ================================================================
+   RUNOFF TABLE (Rainfall Excess)
+   Same fixed logic as buildLossEstimationTable
+================================================================ */
+function calculateRunoffTable() {
+  const tbody = $('runoffTableBody');
+  if (!tbody) return;
+
+  const depthCells  = document.querySelectorAll('#depthGrid .depthCell');
+  if (depthCells.length === 0) return;
+
+  const numBins     = depthCells.length;
+  const durationMin = parseFloat($('durationMin').value);
+  const binMin      = durationMin / numBins;
+  const pervPct     = parseFloat($('perviousArea').value) || 40;
+  const impPct      = parseFloat($('imperviousArea').value) || 60;
+
+  const { f0, fc, k } = getHortonParams();
+  const contRates = generateContRates(numBins, f0, fc, k);
+
+  tbody.innerHTML = '';
+  let sumRain = 0, sumLoss = 0, sumExcess = 0;
+
+  depthCells.forEach((cell, i) => {
+    const rainfall = parseFloat(cell.value);
+    if (!isFinite(rainfall)) return;
+    const lbl = cell.parentElement.querySelector('label').textContent;
+
+    let totalLoss;
+    if (i === 0) {
+      // Bin 0: initial losses only
+      const pervInitMM = 10.00;
+      const impInitMM  = 1.50;
+      totalLoss = parseFloat(((pervInitMM * pervPct + impInitMM * impPct) / 100).toFixed(2));
+    } else {
+      // Bin 1+: continuous loss only, shifted index
+      const contRateMmhr = contRates[i - 1];
+      const pervContMM   = parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
+      totalLoss = parseFloat(((pervContMM * pervPct) / 100).toFixed(2));
+    }
+
+    const excess    = Math.max(0, parseFloat((rainfall - totalLoss).toFixed(3)));
+    const excessMms = parseFloat((excess / (binMin * 60)).toFixed(4));
+
+    sumRain   += rainfall;
+    sumLoss   += totalLoss;
+    sumExcess += excess;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-size:0.8rem;">${lbl}</td>
+      <td>${rainfall.toFixed(3)}</td>
+      <td>${totalLoss.toFixed(2)}</td>
+      <td style="color:var(--ok);font-weight:600;">${excess.toFixed(3)}</td>
+      <td>${excessMms.toFixed(4)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  if ($('runoffTotalRain'))   $('runoffTotalRain').textContent   = sumRain.toFixed(3);
+  if ($('runoffTotalLoss'))   $('runoffTotalLoss').textContent   = sumLoss.toFixed(2);
+  if ($('runoffTotalExcess')) $('runoffTotalExcess').textContent = sumExcess.toFixed(3);
+}
+
+/* ================================================================
+   LOSSES CALCULATION (wrapper)
+================================================================ */
+function calculateLossesTable() {
+  buildLossEstimationTable();
+  calculateRunoffTable();
 }
 
 /* ================================================================
@@ -450,11 +553,11 @@ document.getElementById('stationSelect').addEventListener('change', function () 
    ON ARI/DURATION CHANGE → fetch pattern
 ================================================================ */
 async function onDurationOrARIChange() {
-  const state = $('state').value;
+  const state       = $('state').value;
   const durationMin = parseFloat($('durationMin').value);
   if (!state || !durationMin) return;
 
-  const region = stateToRegion[state];
+  const region      = stateToRegion[state];
   const durationKey = durationMap[durationMin];
   if (!region || !durationKey) return;
 
@@ -465,7 +568,6 @@ async function onDurationOrARIChange() {
     const binMin = pattern.bin_minutes;
     const values = pattern.values;
 
-    // Populate hidden patternGrid for compatibility
     const grid = $('patternGrid');
     grid.innerHTML = '';
     values.forEach((v, i) => {
@@ -477,17 +579,16 @@ async function onDurationOrARIChange() {
       grid.appendChild(wrap);
     });
 
-    // Column-first layout — split into 2 columns, top to bottom
     const ptbody = $('patternTableBody');
     if (ptbody) {
       ptbody.innerHTML = '';
       const half = Math.ceil(values.length / 2);
       for (let i = 0; i < half; i++) {
-        const tr = document.createElement('tr');
         const j = i + half;
         const label1 = `${i * binMin}–${(i + 1) * binMin} min`;
         const label2 = j < values.length ? `${j * binMin}–${(j + 1) * binMin} min` : '';
-        const val2 = j < values.length ? values[j].toFixed(3) : '';
+        const val2   = j < values.length ? values[j].toFixed(3) : '';
+        const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${label1}</td>
           <td><input class="patternCellVis" type="number" step="0.001" value="${values[i].toFixed(3)}"
@@ -515,21 +616,21 @@ document.getElementById('stationSelect').addEventListener('change', onDurationOr
    IDF CALCULATION
 ================================================================ */
 function calculateDesignIntensity() {
-  const K = parseFloat($('idfK').value);
-  const x = parseFloat($('idfX').value);
-  const A = parseFloat($('idfA').value);
-  const n = parseFloat($('idfN').value);
+  const K   = parseFloat($('idfK').value);
+  const x   = parseFloat($('idfX').value);
+  const A   = parseFloat($('idfA').value);
+  const n   = parseFloat($('idfN').value);
   const ARI = parseFloat($('ariYears').value);
   const durationMin = parseFloat($('durationMin').value);
 
   if (![K, x, A, n, ARI, durationMin].every(isFinite)) return;
 
-  const t_hr = durationMin / 60;
+  const t_hr   = durationMin / 60;
   const i_mmhr = K * Math.pow(ARI, x) / Math.pow(A + t_hr, n);
   const totalDepth = i_mmhr * t_hr;
 
   $('designIntensity').textContent = fmt(i_mmhr, 3);
-  $('totalDepthBox').textContent = fmt(totalDepth, 3);
+  $('totalDepthBox').textContent   = fmt(totalDepth, 3);
 
   updateDepthPattern(totalDepth);
 }
@@ -539,20 +640,20 @@ function calculateDesignIntensity() {
 ================================================================ */
 function updateDepthPattern(totalDepth) {
   const patternCells = document.querySelectorAll('.patternCell');
-  const durationMin = parseFloat($('durationMin').value);
+  const durationMin  = parseFloat($('durationMin').value);
   if (patternCells.length === 0 || !isFinite(totalDepth)) return;
 
-  const binMin = durationMin / patternCells.length;
-  const labels = [];
+  const binMin   = durationMin / patternCells.length;
+  const labels   = [];
   const depthValues = [];
-  const allDepths = [];
+  const allDepths   = [];
 
   const depthGrid = $('depthGrid');
   depthGrid.innerHTML = '';
 
   patternCells.forEach((cell, i) => {
-    const norm = parseFloat(cell.value);
-    const dv = norm * totalDepth;
+    const norm  = parseFloat(cell.value);
+    const dv    = norm * totalDepth;
     const label = `${i * binMin}–${(i + 1) * binMin} min`;
     labels.push(label);
     depthValues.push(parseFloat(dv.toFixed(3)));
@@ -566,13 +667,12 @@ function updateDepthPattern(totalDepth) {
     depthGrid.appendChild(wrap);
   });
 
-  // Depth table (column-first 2-col)
   const dtbody = $('depthTableBody');
   if (dtbody) {
     dtbody.innerHTML = '';
     const half2 = Math.ceil(allDepths.length / 2);
     for (let i = 0; i < half2; i++) {
-      const j = i + half2;
+      const j  = i + half2;
       const d2 = allDepths[j];
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -591,78 +691,16 @@ function updateDepthPattern(totalDepth) {
 }
 
 /* ================================================================
-   RUNOFF TABLE (Rainfall Excess)
-================================================================ */
-function calculateRunoffTable() {
-  const tbody = $('runoffTableBody');
-  if (!tbody) return;
-
-  const depthCells = document.querySelectorAll('#depthGrid .depthCell');
-  if (depthCells.length === 0) return;
-
-  const numBins = depthCells.length;
-  const durationMin = parseFloat($('durationMin').value);
-  const binMin = durationMin / numBins;
-  const pervPct = parseFloat($('perviousArea').value) || 40;
-  const impPct = parseFloat($('imperviousArea').value) || 60;
-  const soilType = $('soilType') ? $('soilType').value : 'loam';
-  const range = soilRanges[soilType] || soilRanges.loam;
-  const sliderVal = parseFloat(document.getElementById('pervContinuousLoss').value) || range.max;
-  const contRates = generateContRates(numBins, sliderVal, range.min, range.k);
-
-  tbody.innerHTML = '';
-  let sumRain = 0, sumLoss = 0, sumExcess = 0;
-
-  depthCells.forEach((cell, i) => {
-    const rainfall = parseFloat(cell.value);
-    if (!isFinite(rainfall)) return;
-    const lbl = cell.parentElement.querySelector('label').textContent;
-    const pervContMM = parseFloat((contRates[i] / 60 * binMin).toFixed(2));
-    const impInitMM = i === 0 ? 1.50 : 0.00;
-
-    const totalLoss = parseFloat(((pervContMM * pervPct + impInitMM * impPct) / 100).toFixed(2));
-    const excess = Math.max(0, parseFloat((rainfall - totalLoss).toFixed(3)));
-    const excessMms = parseFloat((excess / (binMin * 60)).toFixed(4));
-
-    sumRain += rainfall;
-    sumLoss += totalLoss;
-    sumExcess += excess;
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="font-size:0.8rem;">${lbl}</td>
-      <td>${rainfall.toFixed(3)}</td>
-      <td>${totalLoss.toFixed(2)}</td>
-      <td style="color:var(--ok);font-weight:600;">${excess.toFixed(3)}</td>
-      <td>${excessMms.toFixed(4)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  // Totals
-  const tRain = $('runoffTotalRain'); if (tRain) tRain.textContent = sumRain.toFixed(3);
-  const tLoss = $('runoffTotalLoss'); if (tLoss) tLoss.textContent = sumLoss.toFixed(2);
-  const tExc = $('runoffTotalExcess'); if (tExc) tExc.textContent = sumExcess.toFixed(3);
-}
-
-/* ================================================================
-   LOSSES CALCULATION (old table — kept for calculate button)
-================================================================ */
-function calculateLossesTable() {
-  buildLossEstimationTable();
-  calculateRunoffTable();
-}
-
-/* ================================================================
    CALCULATE BUTTON (Results tab)
+   Same fixed logic as buildLossEstimationTable
 ================================================================ */
 $('calcBtn').addEventListener('click', function () {
-  const pattern = Array.from(document.querySelectorAll('.patternCell')).map(i => parseFloat(i.value));
-  const patternSum = sum(pattern);
-  const K = parseFloat($('idfK').value);
-  const x = parseFloat($('idfX').value);
-  const A = parseFloat($('idfA').value);
-  const n = parseFloat($('idfN').value);
+  const pattern     = Array.from(document.querySelectorAll('.patternCell')).map(i => parseFloat(i.value));
+  const patternSum  = sum(pattern);
+  const K   = parseFloat($('idfK').value);
+  const x   = parseFloat($('idfX').value);
+  const A   = parseFloat($('idfA').value);
+  const n   = parseFloat($('idfN').value);
   const ARI = parseFloat($('ariYears').value);
   const durationMin = parseFloat($('durationMin').value);
 
@@ -671,30 +709,36 @@ $('calcBtn').addEventListener('click', function () {
     return;
   }
 
-  const t_hr = durationMin / 60;
-  const i_mmhr = K * Math.pow(ARI, x) / Math.pow(A + t_hr, n);
+  const t_hr     = durationMin / 60;
+  const i_mmhr   = K * Math.pow(ARI, x) / Math.pow(A + t_hr, n);
   const totalDepth = i_mmhr * t_hr;
-  const binDepths = pattern.map(f => f * totalDepth);
+  const binDepths  = pattern.map(f => f * totalDepth);
 
   const numBins = pattern.length;
-  const binMin = durationMin / numBins;
+  const binMin  = durationMin / numBins;
   const pervPct = parseFloat($('perviousArea').value);
-  const impPct = parseFloat($('imperviousArea').value);
-  const soilType = $('soilType') ? $('soilType').value : 'loam';
-  const range = soilRanges[soilType] || soilRanges.loam;
-  const sliderVal = parseFloat(document.getElementById('pervContinuousLoss').value) || range.max;
-  const contRates = generateContRates(numBins, sliderVal, range.min, range.k);
-  const dt_hr = binMin / 60;
+  const impPct  = parseFloat($('imperviousArea').value);
+
+  const { f0, fc, k } = getHortonParams();
+  const contRates = generateContRates(numBins, f0, fc, k);
 
   let rows = [], sumLoss = 0, sumExcess = 0;
 
   binDepths.forEach((depth, b) => {
-    const pervContMM = parseFloat((contRates[b] / 60 * binMin).toFixed(2));
-    const impInitMM = b === 0 ? 1.50 : 0.00;
-    const loss = Math.min(parseFloat(((pervContMM * pervPct + impInitMM * impPct) / 100).toFixed(2)), depth);
+    let totalLoss;
+    if (b === 0) {
+      totalLoss = parseFloat(((10.00 * pervPct + 1.50 * impPct) / 100).toFixed(2));
+    } else {
+      const contRateMmhr = contRates[b - 1]; // shift: bin b uses contRates[b-1]
+      const pervContMM   = parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
+      totalLoss = parseFloat(((pervContMM * pervPct) / 100).toFixed(2));
+    }
+
+    const loss   = Math.min(totalLoss, depth);
     const excess = Math.max(0, depth - loss);
-    const mmps = excess / (binMin * 60);
-    sumLoss += loss; sumExcess += excess;
+    const mmps   = excess / (binMin * 60);
+    sumLoss   += loss;
+    sumExcess += excess;
 
     rows.push({
       label: `${b * binMin}–${(b + 1) * binMin}`,
@@ -702,8 +746,8 @@ $('calcBtn').addEventListener('click', function () {
     });
   });
 
-  $('outI').textContent = fmt(i_mmhr, 3);
-  $('outDepth').textContent = fmt(totalDepth, 3);
+  $('outI').textContent      = fmt(i_mmhr, 3);
+  $('outDepth').textContent  = fmt(totalDepth, 3);
   $('outExcess').textContent = fmt(sumExcess, 3);
 
   const tbody = $('resultTable').querySelector('tbody');
@@ -722,9 +766,9 @@ $('calcBtn').addEventListener('click', function () {
   });
 
   $('sumPattern').textContent = fmt(patternSum, 3);
-  $('sumDepth').textContent = fmt(sum(binDepths), 3);
-  $('sumLoss').textContent = fmt(sumLoss, 3);
-  $('sumExcess').textContent = fmt(sumExcess, 3);
+  $('sumDepth').textContent   = fmt(sum(binDepths), 3);
+  $('sumLoss').textContent    = fmt(sumLoss, 3);
+  $('sumExcess').textContent  = fmt(sumExcess, 3);
 });
 
 /* ================================================================
