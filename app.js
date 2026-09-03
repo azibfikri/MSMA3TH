@@ -63,17 +63,16 @@ const sum = (arr) => arr.reduce((a, b) => a + (+b || 0), 0);
 function getHortonParams() {
   const f0El = document.getElementById('pervContinuousLoss');
   const fcEl = document.getElementById('fcValue');
-  const kEl  = document.getElementById('kValue');
+  const kEl = document.getElementById('kValue');
 
-  const f0 = f0El ? parseFloat(f0El.value) : 76.20;
-  const fc = fcEl ? parseFloat(fcEl.value) : 5.97;
-  // FIX: use Number() to avoid 0 || fallback bug
-  const k  = kEl  ? Number(kEl.value)      : 2.5;
+  const f0 = f0El ? parseFloat(f0El.value) : NaN;
+  const fc = fcEl ? parseFloat(fcEl.value) : NaN;
+  const k = kEl ? Number(kEl.value) : 2.5;
 
   return {
-    f0: isFinite(f0) ? f0 : 76.20,
-    fc: isFinite(fc) ? fc : 5.97,
-    k:  isFinite(k)  ? k  : 2.5
+    f0: isFinite(f0) ? f0 : null, // null = user hasn't entered yet
+    fc: isFinite(fc) ? fc : null,
+    k: isFinite(k) ? k : 2.5
   };
 }
 
@@ -338,23 +337,31 @@ function buildLossEstimationTable() {
     return;
   }
 
-  const numBins     = depthCells.length;
+  const numBins = depthCells.length;
   const durationMin = parseFloat($('durationMin').value);
-  const binMin      = durationMin / numBins;
-  const pervPct     = parseFloat($('perviousArea').value) || 40;
-  const impPct      = parseFloat($('imperviousArea').value) || 60;
+  const binMin = durationMin / numBins;
+  const pervPct = parseFloat($('perviousArea').value) || 40;
+  const impPct = parseFloat($('imperviousArea').value) || 60;
 
   // Update header percentages
   if ($('lossEstPervPct')) $('lossEstPervPct').textContent = pervPct;
-  if ($('lossEstImpPct'))  $('lossEstImpPct').textContent  = impPct;
+  if ($('lossEstImpPct')) $('lossEstImpPct').textContent = impPct;
 
   // Read Horton params safely
   const { f0, fc, k } = getHortonParams();
 
+  // If user hasn't entered f0 or fc yet, show placeholder message
+  if (f0 === null || fc === null) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:16px;">
+      Please enter Max. Infiltration Rate (f₀) and Min. Infiltration Rate (f꜀) above.</td></tr>`;
+    if ($('lossEstTotal')) $('lossEstTotal').textContent = '–';
+    return;
+  }
+
   // FIX Issue 5: grey out fc slider when k=0
-  const fcSlider  = $('fcSlider');
+  const fcSlider = $('fcSlider');
   const fcDisplay = $('fcDisplay');
-  const fcNote    = $('fcNote');
+  const fcNote = $('fcNote');
   if (fcSlider) {
     if (k === 0) {
       fcSlider.disabled = true;
@@ -382,9 +389,9 @@ function buildLossEstimationTable() {
   let totalLossSum = 0;
 
   // Arrays for chart (skip bin 0 since cont=0, start from bin 1)
-  const chartLabels    = [];
+  const chartLabels = [];
   const chartRatesMmhr = [];
-  const chartRatesMm   = [];
+  const chartRatesMm = [];
 
   for (let i = 0; i < numBins; i++) {
     const binLabel = `${i * binMin}–${(i + 1) * binMin}`;
@@ -393,19 +400,19 @@ function buildLossEstimationTable() {
 
     if (i === 0) {
       // ── BIN 0: only initial losses ──
-      pervInitMM   = 10.00;
+      pervInitMM = 10.00;
       contRateMmhr = 0.00;
-      pervContMM   = 0.00;
-      impInitMM    = 1.50;
+      pervContMM = 0.00;
+      impInitMM = 1.50;
       // FIX Issue 1: total = (pervInit×pervPct + impInit×impPct) / 100
       totalLoss = parseFloat(((pervInitMM * pervPct + impInitMM * impPct) / 100).toFixed(2));
     } else {
       // ── BIN 1+: continuous loss only ──
-      pervInitMM   = 0.00;
+      pervInitMM = 0.00;
       // FIX Issue 2: shift index by -1 so bin 1 uses contRates[0] = f0
       contRateMmhr = contRates[i - 1];
-      pervContMM   = parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
-      impInitMM    = 0.00;
+      pervContMM = parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
+      impInitMM = 0.00;
       // FIX Issue 2: total = (pervContMM×pervPct + 0×impPct) / 100
       totalLoss = parseFloat(((pervContMM * pervPct) / 100).toFixed(2));
     }
@@ -413,9 +420,10 @@ function buildLossEstimationTable() {
     totalLossSum += totalLoss;
 
     // Chart data: show rate and mm for all bins (0 for bin 0)
-    chartLabels.push(binLabel);
-    chartRatesMmhr.push(contRateMmhr);
-    chartRatesMm.push(pervContMM);
+    chartLabels.push(`${i * binMin}–${(i + 1) * binMin}`);
+    // Bin 0 = null so chart shows empty/gap at first bin
+    chartRatesMmhr.push(i === 0 ? null : contRates[i - 1]);
+    chartRatesMm.push(i === 0 ? null : parseFloat((contRates[i - 1] / 60 * binMin).toFixed(3)));
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -445,16 +453,23 @@ function calculateRunoffTable() {
   const tbody = $('runoffTableBody');
   if (!tbody) return;
 
-  const depthCells  = document.querySelectorAll('#depthGrid .depthCell');
+  const depthCells = document.querySelectorAll('#depthGrid .depthCell');
   if (depthCells.length === 0) return;
 
-  const numBins     = depthCells.length;
+  const numBins = depthCells.length;
   const durationMin = parseFloat($('durationMin').value);
-  const binMin      = durationMin / numBins;
-  const pervPct     = parseFloat($('perviousArea').value) || 40;
-  const impPct      = parseFloat($('imperviousArea').value) || 60;
+  const binMin = durationMin / numBins;
+  const pervPct = parseFloat($('perviousArea').value) || 40;
+  const impPct = parseFloat($('imperviousArea').value) || 60;
 
   const { f0, fc, k } = getHortonParams();
+
+  if (f0 === null || fc === null) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px;">
+      Please enter f₀ and f꜀ values above.</td></tr>`;
+    return;
+  }
+
   const contRates = generateContRates(numBins, f0, fc, k);
 
   tbody.innerHTML = '';
@@ -469,20 +484,20 @@ function calculateRunoffTable() {
     if (i === 0) {
       // Bin 0: initial losses only
       const pervInitMM = 10.00;
-      const impInitMM  = 1.50;
+      const impInitMM = 1.50;
       totalLoss = parseFloat(((pervInitMM * pervPct + impInitMM * impPct) / 100).toFixed(2));
     } else {
       // Bin 1+: continuous loss only, shifted index
       const contRateMmhr = contRates[i - 1];
-      const pervContMM   = parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
+      const pervContMM = parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
       totalLoss = parseFloat(((pervContMM * pervPct) / 100).toFixed(2));
     }
 
-    const excess    = Math.max(0, parseFloat((rainfall - totalLoss).toFixed(3)));
+    const excess = Math.max(0, parseFloat((rainfall - totalLoss).toFixed(3)));
     const excessMms = parseFloat((excess / (binMin * 60)).toFixed(4));
 
-    sumRain   += rainfall;
-    sumLoss   += totalLoss;
+    sumRain += rainfall;
+    sumLoss += totalLoss;
     sumExcess += excess;
 
     const tr = document.createElement('tr');
@@ -496,8 +511,8 @@ function calculateRunoffTable() {
     tbody.appendChild(tr);
   });
 
-  if ($('runoffTotalRain'))   $('runoffTotalRain').textContent   = sumRain.toFixed(3);
-  if ($('runoffTotalLoss'))   $('runoffTotalLoss').textContent   = sumLoss.toFixed(2);
+  if ($('runoffTotalRain')) $('runoffTotalRain').textContent = sumRain.toFixed(3);
+  if ($('runoffTotalLoss')) $('runoffTotalLoss').textContent = sumLoss.toFixed(2);
   if ($('runoffTotalExcess')) $('runoffTotalExcess').textContent = sumExcess.toFixed(3);
 }
 
@@ -553,11 +568,11 @@ document.getElementById('stationSelect').addEventListener('change', function () 
    ON ARI/DURATION CHANGE → fetch pattern
 ================================================================ */
 async function onDurationOrARIChange() {
-  const state       = $('state').value;
+  const state = $('state').value;
   const durationMin = parseFloat($('durationMin').value);
   if (!state || !durationMin) return;
 
-  const region      = stateToRegion[state];
+  const region = stateToRegion[state];
   const durationKey = durationMap[durationMin];
   if (!region || !durationKey) return;
 
@@ -587,7 +602,7 @@ async function onDurationOrARIChange() {
         const j = i + half;
         const label1 = `${i * binMin}–${(i + 1) * binMin} min`;
         const label2 = j < values.length ? `${j * binMin}–${(j + 1) * binMin} min` : '';
-        const val2   = j < values.length ? values[j].toFixed(3) : '';
+        const val2 = j < values.length ? values[j].toFixed(3) : '';
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${label1}</td>
@@ -616,21 +631,21 @@ document.getElementById('stationSelect').addEventListener('change', onDurationOr
    IDF CALCULATION
 ================================================================ */
 function calculateDesignIntensity() {
-  const K   = parseFloat($('idfK').value);
-  const x   = parseFloat($('idfX').value);
-  const A   = parseFloat($('idfA').value);
-  const n   = parseFloat($('idfN').value);
+  const K = parseFloat($('idfK').value);
+  const x = parseFloat($('idfX').value);
+  const A = parseFloat($('idfA').value);
+  const n = parseFloat($('idfN').value);
   const ARI = parseFloat($('ariYears').value);
   const durationMin = parseFloat($('durationMin').value);
 
   if (![K, x, A, n, ARI, durationMin].every(isFinite)) return;
 
-  const t_hr   = durationMin / 60;
+  const t_hr = durationMin / 60;
   const i_mmhr = K * Math.pow(ARI, x) / Math.pow(A + t_hr, n);
   const totalDepth = i_mmhr * t_hr;
 
   $('designIntensity').textContent = fmt(i_mmhr, 3);
-  $('totalDepthBox').textContent   = fmt(totalDepth, 3);
+  $('totalDepthBox').textContent = fmt(totalDepth, 3);
 
   updateDepthPattern(totalDepth);
 }
@@ -640,20 +655,20 @@ function calculateDesignIntensity() {
 ================================================================ */
 function updateDepthPattern(totalDepth) {
   const patternCells = document.querySelectorAll('.patternCell');
-  const durationMin  = parseFloat($('durationMin').value);
+  const durationMin = parseFloat($('durationMin').value);
   if (patternCells.length === 0 || !isFinite(totalDepth)) return;
 
-  const binMin   = durationMin / patternCells.length;
-  const labels   = [];
+  const binMin = durationMin / patternCells.length;
+  const labels = [];
   const depthValues = [];
-  const allDepths   = [];
+  const allDepths = [];
 
   const depthGrid = $('depthGrid');
   depthGrid.innerHTML = '';
 
   patternCells.forEach((cell, i) => {
-    const norm  = parseFloat(cell.value);
-    const dv    = norm * totalDepth;
+    const norm = parseFloat(cell.value);
+    const dv = norm * totalDepth;
     const label = `${i * binMin}–${(i + 1) * binMin} min`;
     labels.push(label);
     depthValues.push(parseFloat(dv.toFixed(3)));
@@ -672,7 +687,7 @@ function updateDepthPattern(totalDepth) {
     dtbody.innerHTML = '';
     const half2 = Math.ceil(allDepths.length / 2);
     for (let i = 0; i < half2; i++) {
-      const j  = i + half2;
+      const j = i + half2;
       const d2 = allDepths[j];
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -695,12 +710,12 @@ function updateDepthPattern(totalDepth) {
    Same fixed logic as buildLossEstimationTable
 ================================================================ */
 $('calcBtn').addEventListener('click', function () {
-  const pattern     = Array.from(document.querySelectorAll('.patternCell')).map(i => parseFloat(i.value));
-  const patternSum  = sum(pattern);
-  const K   = parseFloat($('idfK').value);
-  const x   = parseFloat($('idfX').value);
-  const A   = parseFloat($('idfA').value);
-  const n   = parseFloat($('idfN').value);
+  const pattern = Array.from(document.querySelectorAll('.patternCell')).map(i => parseFloat(i.value));
+  const patternSum = sum(pattern);
+  const K = parseFloat($('idfK').value);
+  const x = parseFloat($('idfX').value);
+  const A = parseFloat($('idfA').value);
+  const n = parseFloat($('idfN').value);
   const ARI = parseFloat($('ariYears').value);
   const durationMin = parseFloat($('durationMin').value);
 
@@ -709,15 +724,15 @@ $('calcBtn').addEventListener('click', function () {
     return;
   }
 
-  const t_hr     = durationMin / 60;
-  const i_mmhr   = K * Math.pow(ARI, x) / Math.pow(A + t_hr, n);
+  const t_hr = durationMin / 60;
+  const i_mmhr = K * Math.pow(ARI, x) / Math.pow(A + t_hr, n);
   const totalDepth = i_mmhr * t_hr;
-  const binDepths  = pattern.map(f => f * totalDepth);
+  const binDepths = pattern.map(f => f * totalDepth);
 
   const numBins = pattern.length;
-  const binMin  = durationMin / numBins;
+  const binMin = durationMin / numBins;
   const pervPct = parseFloat($('perviousArea').value);
-  const impPct  = parseFloat($('imperviousArea').value);
+  const impPct = parseFloat($('imperviousArea').value);
 
   const { f0, fc, k } = getHortonParams();
   const contRates = generateContRates(numBins, f0, fc, k);
@@ -730,14 +745,14 @@ $('calcBtn').addEventListener('click', function () {
       totalLoss = parseFloat(((10.00 * pervPct + 1.50 * impPct) / 100).toFixed(2));
     } else {
       const contRateMmhr = contRates[b - 1]; // shift: bin b uses contRates[b-1]
-      const pervContMM   = parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
+      const pervContMM = parseFloat((contRateMmhr / 60 * binMin).toFixed(2));
       totalLoss = parseFloat(((pervContMM * pervPct) / 100).toFixed(2));
     }
 
-    const loss   = Math.min(totalLoss, depth);
+    const loss = Math.min(totalLoss, depth);
     const excess = Math.max(0, depth - loss);
-    const mmps   = excess / (binMin * 60);
-    sumLoss   += loss;
+    const mmps = excess / (binMin * 60);
+    sumLoss += loss;
     sumExcess += excess;
 
     rows.push({
@@ -746,8 +761,8 @@ $('calcBtn').addEventListener('click', function () {
     });
   });
 
-  $('outI').textContent      = fmt(i_mmhr, 3);
-  $('outDepth').textContent  = fmt(totalDepth, 3);
+  $('outI').textContent = fmt(i_mmhr, 3);
+  $('outDepth').textContent = fmt(totalDepth, 3);
   $('outExcess').textContent = fmt(sumExcess, 3);
 
   const tbody = $('resultTable').querySelector('tbody');
@@ -766,9 +781,9 @@ $('calcBtn').addEventListener('click', function () {
   });
 
   $('sumPattern').textContent = fmt(patternSum, 3);
-  $('sumDepth').textContent   = fmt(sum(binDepths), 3);
-  $('sumLoss').textContent    = fmt(sumLoss, 3);
-  $('sumExcess').textContent  = fmt(sumExcess, 3);
+  $('sumDepth').textContent = fmt(sum(binDepths), 3);
+  $('sumLoss').textContent = fmt(sumLoss, 3);
+  $('sumExcess').textContent = fmt(sumExcess, 3);
 });
 
 /* ================================================================
