@@ -703,6 +703,8 @@ function updateDepthPattern(totalDepth) {
   renderHyetograph(labels, depthValues);
   buildLossEstimationTable();
   calculateRunoffTable();
+  // Refresh isochrone table time labels when bins change
+  if (typeof buildIsoInputTable === 'function') buildIsoInputTable();
 }
 
 /* ================================================================
@@ -785,6 +787,326 @@ $('calcBtn').addEventListener('click', function () {
   $('sumLoss').textContent = fmt(sumLoss, 3);
   $('sumExcess').textContent = fmt(sumExcess, 3);
 });
+
+/* ================================================================
+   HYDROGRAPH — Time-Area Convolution
+   Q(t) = Σ [e(τ) × A(t-τ)] / (binSec × 1000)  → m³/s
+   e = excess per bin (mm/s), A = isochrone area (m²)
+   Length = numExcessBins + numIsoBins - 1
+================================================================ */
+let hydrographChart = null;
+
+// Store last computed hydrograph for display
+let lastHydrographData = null;
+
+function buildHydrograph() {
+  // Get excess values (mm/s) from runoff table
+  const runoffRows = document.querySelectorAll('#runoffTableBody tr');
+  const excessMms = [];
+  runoffRows.forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length >= 5) {
+      const v = parseFloat(cells[4].textContent);
+      if (isFinite(v)) excessMms.push(v);
+    }
+  });
+
+  if (excessMms.length === 0) return;
+
+  const durationMin = parseFloat($('durationMin').value);
+  const numBins = excessMms.length;
+  const binMin = durationMin / numBins;
+  const binSec = binMin * 60;
+
+  // Get isochrone areas from input table
+  const isoRows = document.querySelectorAll('#isoInputTableBody tr');
+  const isoAreas = [];
+  isoRows.forEach(tr => {
+    const inp = tr.querySelector('input[type=number]');
+    if (inp) {
+      const v = parseFloat(inp.value);
+      if (isFinite(v) && v > 0) isoAreas.push(v);
+    }
+  });
+
+  if (isoAreas.length === 0) return;
+
+  const numIso = isoAreas.length;
+  const totalLen = numBins + numIso - 1;
+
+  // Convolution: Q[t] = Σ e[τ] × A[t-τ] / (binSec × 1000)
+  const Q = new Array(totalLen).fill(0);
+  for (let t = 0; t < totalLen; t++) {
+    let qSum = 0;
+    for (let tau = 0; tau < numBins; tau++) {
+      const aIdx = t - tau;
+      if (aIdx >= 0 && aIdx < numIso) {
+        qSum += excessMms[tau] * isoAreas[aIdx];
+      }
+    }
+    Q[t] = qSum / (binSec * 1000);
+  }
+
+  // Build time labels (end of each bin)
+  const timeLabels = [];
+  for (let t = 0; t < totalLen; t++) {
+    timeLabels.push((t + 1) * binMin);
+  }
+
+  // Find peak
+  let peakQ = 0, peakIdx = 0;
+  Q.forEach((q, i) => { if (q > peakQ) { peakQ = q; peakIdx = i; } });
+
+  // Store for table rendering
+  lastHydrographData = {
+    Q, timeLabels, excessMms, isoAreas,
+    binMin, binSec, numBins, numIso, totalLen,
+    peakQ, peakTime: timeLabels[peakIdx]
+  };
+
+  // Update peak display
+  if ($('peakQ')) $('peakQ').textContent = peakQ.toFixed(4);
+  if ($('peakT')) $('peakT').textContent = timeLabels[peakIdx];
+
+  renderHydrographChart(timeLabels, Q);
+  renderConvolutionMatrix();
+}
+
+/* ================================================================
+   HYDROGRAPH CHART
+================================================================ */
+function renderHydrographChart(timeLabels, Q) {
+  const canvas = $('hydrographCanvas');
+  if (!canvas) return;
+
+  if (hydrographChart) {
+    hydrographChart.destroy();
+    hydrographChart = null;
+  }
+
+  hydrographChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: timeLabels,
+      datasets: [{
+        label: 'Discharge Q (m³/s)',
+        data: Q,
+        borderColor: '#7be495',
+        borderWidth: 2.5,
+        backgroundColor: 'rgba(123,228,149,0.08)',
+        pointBackgroundColor: '#7be495',
+        pointBorderColor: '#0b0f14',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true, position: 'top',
+          labels: { color: '#7f8ea3', font: { size: 11 }, boxWidth: 12, padding: 10 }
+        },
+        tooltip: {
+          backgroundColor: '#111723', borderColor: '#1a2433', borderWidth: 1,
+          titleColor: '#e8f0ff', bodyColor: '#7f8ea3',
+          callbacks: {
+            title: ctx => `Time: ${ctx[0].label} min`,
+            label: ctx => ` Q = ${ctx.parsed.y.toFixed(4)} m³/s`
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Time (min)', color: '#7f8ea3', font: { size: 11 } },
+          ticks: { color: '#7f8ea3', font: { size: 10 } },
+          grid: { color: 'rgba(26,36,51,0.8)' }
+        },
+        y: {
+          title: { display: true, text: 'Discharge Q (m³/s)', color: '#7f8ea3', font: { size: 11 } },
+          ticks: { color: '#7f8ea3', font: { size: 10 } },
+          grid: { color: 'rgba(26,36,51,0.8)' },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+/* ================================================================
+   CONVOLUTION MATRIX TABLE
+   Mirrors SV's Excel layout:
+   Rows = time steps, Cols = excess bins, last col = Q(t)
+================================================================ */
+function renderConvolutionMatrix() {
+  const wrap = $('convMatrixWrap');
+  if (!wrap || !lastHydrographData) return;
+
+  const { Q, timeLabels, excessMms, isoAreas,
+    binMin, binSec, numBins, numIso, totalLen, peakQ } = lastHydrographData;
+
+  // Build header: Time | Area of Isochron | Excess(mm/s) cols | Q
+  let html = '<table class="conv-table"><thead>';
+
+  // Row 1 header
+  html += '<tr>';
+  html += '<th rowspan="3">Time<br><small>(min)</small></th>';
+  html += '<th rowspan="3">Area of<br>Isochron<br><small>(m²)</small></th>';
+  html += '<th rowspan="3">Excess<br><small>(mm/s)</small></th>';
+
+  // Excess bin time range headers
+  for (let b = 0; b < numBins; b++) {
+    const label = `${b * binMin}–${(b + 1) * binMin}`;
+    html += `<th>${label}</th>`;
+  }
+  html += '<th rowspan="3">Q<br><small>(m³/s)</small></th>';
+  html += '</tr>';
+
+  // Row 2: excess values as sub-header
+  html += '<tr class="sub-header">';
+  for (let b = 0; b < numBins; b++) {
+    html += `<th style="color:var(--warn);font-size:0.72rem;">${excessMms[b].toFixed(6)}</th>`;
+  }
+  html += '</tr>';
+
+  // Row 3: isochrone areas
+  html += '<tr class="sub-header">';
+  for (let b = 0; b < numBins; b++) {
+    const areaLabel = b < numIso ? `B${b + 1}: ${isoAreas[b].toLocaleString()}` : '';
+    html += `<th style="color:#4ea8ff;font-size:0.72rem;">${areaLabel}</th>`;
+  }
+  html += '</tr>';
+
+  html += '</thead><tbody>';
+
+  // Data rows
+  for (let t = 0; t < totalLen; t++) {
+    const isoPeak = Q[t] === peakQ;
+    html += `<tr${isoPeak ? ' class="peak-row"' : ''}>`;
+    html += `<td style="color:var(--muted);font-size:0.8rem;">${timeLabels[t]}</td>`;
+
+    // Show isochrone area for rows where it applies
+    const isoLabel = t < numIso ? `B${t + 1}: ${isoAreas[t].toLocaleString()}` : '';
+    html += `<td style="font-size:0.8rem;color:#4ea8ff;">${isoLabel}</td>`;
+
+    // Excess mm/s for this time step (diagonal approach)
+    const excessLabel = t < numBins ? excessMms[t].toFixed(6) : '';
+    html += `<td style="font-size:0.8rem;color:var(--warn);">${excessLabel}</td>`;
+
+    // Convolution contributions per column
+    for (let b = 0; b < numBins; b++) {
+      const aIdx = t - b;
+      let cellVal = '';
+      if (aIdx >= 0 && aIdx < numIso && isFinite(excessMms[b]) && excessMms[b] > 0) {
+        const contrib = excessMms[b] * isoAreas[aIdx] / (binSec * 1000);
+        cellVal = contrib.toFixed(7);
+      }
+      html += `<td style="font-size:0.78rem;${cellVal ? 'color:var(--text);' : 'color:#1a2433;'}">${cellVal || '—'}</td>`;
+    }
+
+    // Q total
+    html += `<td style="font-weight:700;color:${isoPeak ? 'var(--warn)' : 'var(--ok)'};">${Q[t].toFixed(4)}</td>`;
+    html += '</tr>';
+  }
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+/* ================================================================
+   ISOCHRONE INPUT TABLE — build/manage in Step 4
+================================================================ */
+function buildIsoInputTable() {
+  const tbody = $('isoInputTableBody');
+  if (!tbody) return;
+
+  // Preserve existing values
+  const existing = [];
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const inp = tr.querySelector('input[type=number]');
+    if (inp) existing.push(inp.value);
+  });
+
+  const durationMin = parseFloat($('durationMin').value) || 30;
+  const numBins = document.querySelectorAll('#depthGrid .depthCell').length || 1;
+  const binMin = durationMin / numBins;
+
+  // Keep existing rows, just update labels
+  const currentRows = tbody.querySelectorAll('tr').length;
+  if (currentRows === 0) {
+    // Add one default row
+    addIsoRow();
+  }
+
+  updateIsoTotal();
+}
+
+function addIsoRow() {
+  const tbody = $('isoInputTableBody');
+  if (!tbody) return;
+
+  const durationMin = parseFloat($('durationMin').value) || 30;
+  const numBins = document.querySelectorAll('#depthGrid .depthCell').length || 1;
+  const binMin = durationMin / numBins;
+
+  const rowIdx = tbody.querySelectorAll('tr').length;
+  const tStart = rowIdx * binMin;
+  const tEnd = (rowIdx + 1) * binMin;
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="color:var(--muted);font-size:0.8rem;">B${rowIdx + 1}
+      <span style="font-size:0.72rem;color:#1a2433;margin-left:4px;">${tStart}–${tEnd} min</span>
+    </td>
+    <td>
+      <input type="number" min="0" step="1" placeholder="e.g. 350000"
+        style="width:140px;padding:6px 10px;font-size:0.85rem;"
+        oninput="updateIsoTotal()" />
+    </td>
+    <td>
+      <button onclick="removeIsoRow(this)" style="background:transparent;border:1px solid rgba(255,107,107,0.3);
+        color:var(--danger);padding:4px 10px;border-radius:6px;font-size:0.78rem;
+        box-shadow:none;font-weight:600;">✕</button>
+    </td>
+  `;
+  tbody.appendChild(tr);
+  updateIsoTotal();
+}
+
+function removeIsoRow(btn) {
+  const tr = btn.closest('tr');
+  tr.remove();
+  // Renumber remaining rows
+  const tbody = $('isoInputTableBody');
+  const durationMin = parseFloat($('durationMin').value) || 30;
+  const numBins = document.querySelectorAll('#depthGrid .depthCell').length || 1;
+  const binMin = durationMin / numBins;
+
+  tbody.querySelectorAll('tr').forEach((row, i) => {
+    const tStart = i * binMin;
+    const tEnd = (i + 1) * binMin;
+    const firstCell = row.querySelector('td');
+    if (firstCell) {
+      firstCell.innerHTML = `B${i + 1} <span style="font-size:0.72rem;color:#1a2433;margin-left:4px;">${tStart}–${tEnd} min</span>`;
+    }
+  });
+  updateIsoTotal();
+}
+
+function updateIsoTotal() {
+  let total = 0;
+  document.querySelectorAll('#isoInputTableBody input[type=number]').forEach(inp => {
+    const v = parseFloat(inp.value);
+    if (isFinite(v)) total += v;
+  });
+  if ($('isoTotalEntered')) {
+    $('isoTotalEntered').textContent = total > 0 ? total.toLocaleString() : '—';
+  }
+}
 
 /* ================================================================
    INIT
