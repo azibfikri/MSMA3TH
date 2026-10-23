@@ -824,7 +824,7 @@
 
             <!-- REFERENCE -->
             <div style="font-size:0.72rem;color:var(--muted);margin-bottom:16px;font-style:italic;">
-              (Source of Horton Parameters: EPA Storm Water Management Model (SWMM) 5 User Manual)
+              (Source of Horton parameters: EPA Storm Water Management Model (SWMM) 5 User Manual)
             </div>
 
             <!-- SOIL TYPE -->
@@ -988,9 +988,14 @@
               <label>
                 Max. Infiltration Rate, f₀ (mm/hr)
               </label>
-              <input id="f0Input" type="number" step="0.01" min="0" placeholder="Enter f₀ value"
+              <input id="f0Input" type="number" step="0.01" min="0" placeholder="Enter f₀ value from table above"
                 style="margin-top:4px;" oninput="onManualF0Change()" />
               <input id="pervContinuousLoss" type="hidden" value="" />
+              <div style="font-size:0.72rem;color:var(--muted);margin-top:5px;font-style:italic;">
+                Refer to the Infiltration Rate Reference Table above to determine f₀ based on your soil type and
+                moisture condition.
+                <span style="color:var(--muted);">(Source: EPA Storm Water Management Model (SWMM) 5 User Manual)</span>
+              </div>
             </div>
 
             <!-- MANUAL INPUT fc -->
@@ -999,14 +1004,24 @@
                 Min. Infiltration Rate, f<sub>c</sub> (mm/hr)
               </label>
               <input id="fcInput" type="number" step="0.01" min="0"
-                placeholder="Enter f꜀ value" style="margin-top:4px;"
+                placeholder="Enter f꜀ value — refer Near Saturation range in table above" style="margin-top:4px;"
                 oninput="onManualFcChange()" />
               <input id="fcValue" type="hidden" value="" />
+              <div style="font-size:0.72rem;color:var(--muted);margin-top:5px;font-style:italic;">
+                Equivalent to the soil's saturated hydraulic conductivity. For near saturation condition, refer to the
+                Near Saturation column in the table above.
+                <span style="color:var(--muted);">(Source: EPA Storm Water Management Model (SWMM) 5 User Manual)</span>
+              </div>
             </div>
 
             <!-- DECAY CONSTANT k -->
             <div style="margin-bottom:14px;">
               <label>Decay Constant, k (1/hr)</label>
+              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px;font-style:italic;">
+                Infiltration rate decay constant for the Horton curve (1/hours). Typical values range between 2 and 7.
+                <span style="color:var(--muted);">(Source: EPA Storm Water Management Model (SWMM) 5 User Manual)</span>
+              </div>
+              
               <div class="range-row">
                 <span class="range-label">0</span>
                 <input id="kSlider" type="range" min="0" max="7" step="0.1" value="2.5" oninput="onKSliderChange()" />
