@@ -474,6 +474,7 @@ function calculateRunoffTable() {
 
   tbody.innerHTML = '';
   let sumRain = 0, sumLoss = 0, sumExcess = 0;
+  _excessMmsFull = []; // reset full-precision store
 
   depthCells.forEach((cell, i) => {
     const rainfall = parseFloat(cell.value);
@@ -494,7 +495,9 @@ function calculateRunoffTable() {
     }
 
     const excess = Math.max(0, parseFloat((rainfall - totalLoss).toFixed(3)));
-    const excessMms = parseFloat((excess / (binMin * 60)).toFixed(4));
+    const excessMmsFull = excess / (binMin * 60); // full precision — stored for hydrograph
+    _excessMmsFull.push(excessMmsFull);
+    const excessMms = parseFloat(excessMmsFull.toFixed(4)); // display only
 
     sumRain += rainfall;
     sumLoss += totalLoss;
@@ -790,8 +793,8 @@ $('calcBtn').addEventListener('click', function () {
 
 /* ================================================================
    HYDROGRAPH — Time-Area Convolution
-   Q(t) = Σ [e(τ) × A(t-τ)] / (binSec × 1000)  → m³/s
-   e = excess per bin (mm/s), A = isochrone area (m²)
+   Q(t) = Σ [e(τ) × A(t-τ)] / 1000  → m³/s
+   e = excess per bin (mm/s, full precision), A = isochrone area (m²)
    Length = numExcessBins + numIsoBins - 1
 ================================================================ */
 let hydrographChart = null;
@@ -799,17 +802,13 @@ let hydrographChart = null;
 // Store last computed hydrograph for display
 let lastHydrographData = null;
 
+// Full-precision excess mm/s values — set by calculateRunoffTable(), read by buildHydrograph()
+let _excessMmsFull = [];
+
 function buildHydrograph() {
-  // Get excess values (mm/s) from runoff table
-  const runoffRows = document.querySelectorAll('#runoffTableBody tr');
-  const excessMms = [];
-  runoffRows.forEach(tr => {
-    const cells = tr.querySelectorAll('td');
-    if (cells.length >= 5) {
-      const v = parseFloat(cells[4].textContent);
-      if (isFinite(v)) excessMms.push(v);
-    }
-  });
+  // Use full-precision values stored by calculateRunoffTable()
+  // (avoids reading truncated text from DOM cells)
+  const excessMms = _excessMmsFull.slice();
 
   if (excessMms.length === 0) return;
 
@@ -834,7 +833,10 @@ function buildHydrograph() {
   const numIso = isoAreas.length;
   const totalLen = numBins + numIso - 1;
 
-  // Convolution: Q[t] = Σ e[τ] × A[t-τ] / (binSec × 1000)
+  // Convolution: Q[t] = Σ e[τ] × A[t-τ] / 1000
+  // e[τ] is already in mm/s, A in m², so:
+  // mm/s × m² / 1000 = m/s × m² = m³/s  (because 1 mm = 0.001 m)
+  // This matches SV Excel formula: =excess_mm_s * area_m2 / 1000
   const Q = new Array(totalLen).fill(0);
   for (let t = 0; t < totalLen; t++) {
     let qSum = 0;
@@ -844,7 +846,7 @@ function buildHydrograph() {
         qSum += excessMms[tau] * isoAreas[aIdx];
       }
     }
-    Q[t] = qSum / (binSec * 1000);
+    Q[t] = qSum / 1000;
   }
 
   // Build time labels (end of each bin)
@@ -1002,7 +1004,7 @@ function renderConvolutionMatrix() {
       const aIdx = t - b;
       let cellVal = '';
       if (aIdx >= 0 && aIdx < numIso && isFinite(excessMms[b]) && excessMms[b] > 0) {
-        const contrib = excessMms[b] * isoAreas[aIdx] / (binSec * 1000);
+        const contrib = excessMms[b] * isoAreas[aIdx] / 1000;
         cellVal = contrib.toFixed(7);
       }
       html += `<td style="font-size:0.78rem;${cellVal ? 'color:var(--text);' : 'color:#1a2433;'}">${cellVal || '—'}</td>`;

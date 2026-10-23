@@ -523,7 +523,8 @@
       min-width: 600px;
     }
 
-    .conv-table th, .conv-table td {
+    .conv-table th,
+    .conv-table td {
       padding: 5px 8px;
       border: 1px solid #1a2433;
       text-align: center;
@@ -1260,7 +1261,8 @@
       ════════════════════════════════ -->
       <div class="tab-panel card" id="panel5">
         <h2 style="margin-bottom:4px;">Step 5 — Hydrograph</h2>
-        <p class="step-intro">Define isochrone zones and compute the Time-Area hydrograph for the selected storm event.</p>
+        <p class="step-intro">Define isochrone zones and compute the Time-Area hydrograph for the selected storm event.
+        </p>
 
         <!-- ISOCHRONE INPUT TABLE -->
         <p class="section-title">Time-Area Isochrone Zones</p>
@@ -1282,7 +1284,8 @@
           </table>
         </div>
 
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+        <div
+          style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
           <button onclick="addIsoRow()" style="background:transparent;border:1px solid rgba(78,168,255,0.4);
             color:var(--accent);padding:7px 16px;border-radius:8px;font-size:0.82rem;
             font-weight:600;cursor:pointer;box-shadow:none;">+ Add Zone</button>
@@ -1293,8 +1296,7 @@
 
         <!-- Compute button -->
         <div style="margin-bottom:24px;">
-          <button onclick="if(typeof buildHydrograph==='function')buildHydrograph()"
-            style="width:100%;padding:12px;background:var(--accent);border:none;color:#021b33;
+          <button onclick="if(typeof buildHydrograph==='function')buildHydrograph()" style="width:100%;padding:12px;background:var(--accent);border:none;color:#021b33;
             font-size:0.95rem;font-weight:700;border-radius:10px;cursor:pointer;
             box-shadow:0 4px 14px rgba(78,168,255,0.3);">
             ⚡ Compute Hydrograph
@@ -1305,15 +1307,18 @@
         <div class="results-summary">
           <div class="summary-card">
             <span class="k">Intensity, 𝑖</span>
-            <div class="v"><span id="outI">–</span> <small style="font-size:0.75rem;color:var(--muted);">mm/hr</small></div>
+            <div class="v"><span id="outI">–</span> <small style="font-size:0.75rem;color:var(--muted);">mm/hr</small>
+            </div>
           </div>
           <div class="summary-card">
             <span class="k">Total Depth, 𝑃</span>
-            <div class="v"><span id="outDepth">–</span> <small style="font-size:0.75rem;color:var(--muted);">mm</small></div>
+            <div class="v"><span id="outDepth">–</span> <small style="font-size:0.75rem;color:var(--muted);">mm</small>
+            </div>
           </div>
           <div class="summary-card">
             <span class="k">Total Excess</span>
-            <div class="v"><span id="outExcess">–</span> <small style="font-size:0.75rem;color:var(--muted);">mm</small></div>
+            <div class="v"><span id="outExcess">–</span> <small style="font-size:0.75rem;color:var(--muted);">mm</small>
+            </div>
           </div>
         </div>
 
@@ -1321,11 +1326,13 @@
         <div class="peak-cards">
           <div class="peak-card">
             <span class="k">Peak Discharge, Q<sub>peak</sub></span>
-            <div class="v"><span id="peakQ">–</span> <small style="font-size:0.75rem;color:var(--muted);">m³/s</small></div>
+            <div class="v"><span id="peakQ">–</span> <small style="font-size:0.75rem;color:var(--muted);">m³/s</small>
+            </div>
           </div>
           <div class="peak-card">
             <span class="k">Time to Peak</span>
-            <div class="v"><span id="peakT">–</span> <small style="font-size:0.75rem;color:var(--muted);">min</small></div>
+            <div class="v"><span id="peakT">–</span> <small style="font-size:0.75rem;color:var(--muted);">min</small>
+            </div>
           </div>
         </div>
 
@@ -1341,8 +1348,10 @@
           <tbody></tbody>
           <tfoot>
             <tr>
-              <th id="sumPattern"></th><th id="sumDepth"></th>
-              <th id="sumLoss"></th><th id="sumExcess"></th>
+              <th id="sumPattern"></th>
+              <th id="sumDepth"></th>
+              <th id="sumLoss"></th>
+              <th id="sumExcess"></th>
             </tr>
           </tfoot>
         </table>
@@ -1377,7 +1386,8 @@
         <div class="wizard-nav">
           <button class="btn-back" onclick="goToTab(4)">← Back to Catchment</button>
           <button class="btn-reset" onclick="resetAll()">↺ Reset All</button>
-          <button class="btn-next" onclick="if(typeof buildHydrograph==='function')buildHydrograph()">↻ Recalculate</button>
+          <button class="btn-next" onclick="if(typeof buildHydrograph==='function')buildHydrograph()">↻
+            Recalculate</button>
         </div>
       </div>
 
@@ -1454,10 +1464,10 @@
 
       // Reset results
       ['outI', 'outDepth', 'outExcess', 'sumPattern', 'sumDepth', 'sumLoss', 'sumExcess',
-       'peakQ', 'peakT'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = '–';
-      });
+        'peakQ', 'peakT'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = '–';
+        });
       document.querySelector('#resultTable tbody').innerHTML = '';
       if (typeof hydrographChart !== 'undefined' && hydrographChart) {
         hydrographChart.destroy(); hydrographChart = null;
