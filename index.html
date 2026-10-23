@@ -476,17 +476,40 @@
       line-height: 1.5;
     }
 
-    @media (max-width: 600px) {
-      .state-grid {
-        grid-template-columns: repeat(4, 1fr);
-      }
+    /* ================================================================
+       ISOCHRONE INPUT TABLE
+    ================================================================ */
+    .iso-table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid #1a2433;
+      margin-bottom: 12px;
+    }
 
-      .param-grid,
-      .result-boxes,
-      .loss-grid,
-      .results-summary {
-        grid-template-columns: 1fr;
-      }
+    .iso-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #0f1724;
+      font-size: 0.85rem;
+    }
+
+    .iso-table th {
+      background: #0e1520;
+      color: var(--muted);
+      padding: 8px 12px;
+      text-align: center;
+      font-weight: 600;
+      border-bottom: 1px solid #1a2433;
+    }
+
+    .iso-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #1a2433;
+      text-align: center;
+    }
+
+    .iso-table tr:last-child td {
+      border-bottom: none;
     }
 
     /* ================================================================
@@ -495,55 +518,79 @@
     .conv-table {
       width: 100%;
       border-collapse: collapse;
-      background: #0f1724;
       font-size: 0.78rem;
+      background: #0f1724;
       min-width: 600px;
     }
 
-    .conv-table th {
+    .conv-table th, .conv-table td {
+      padding: 5px 8px;
+      border: 1px solid #1a2433;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .conv-table thead th {
       background: #0e1520;
       color: var(--muted);
-      padding: 7px 10px;
-      text-align: center;
-      border: 1px solid #1a2433;
       font-weight: 600;
-      font-size: 0.75rem;
-      white-space: nowrap;
     }
 
-    .conv-table th:first-child {
-      text-align: left;
-    }
-
-    .conv-table td {
-      padding: 6px 10px;
-      border: 1px solid #1a2433;
-      text-align: right;
-      white-space: nowrap;
-    }
-
-    .conv-table td:first-child {
-      text-align: left;
-    }
-
-    .conv-table tr.sub-header th {
-      font-size: 0.70rem;
-      padding: 4px 8px;
-      background: #0c111c;
+    .conv-table tr.peak-row {
+      background: rgba(255, 209, 102, 0.08);
     }
 
     .conv-table tr.peak-row td {
-      background: rgba(255,209,102,0.07);
+      border-color: rgba(255, 209, 102, 0.2);
     }
 
-    .conv-table tr.peak-row td:last-child {
-      color: var(--warn) !important;
-      font-weight: 800 !important;
+    .conv-table tr.sub-header th {
+      background: #0b111a;
+      font-size: 0.72rem;
     }
 
-    /* details toggle icon update */
-    #convDetails[open] #convToggleIcon {
-      content: '▼';
+    /* Peak summary cards */
+    .peak-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .peak-card {
+      background: #0e1520;
+      border: 2px solid rgba(123, 228, 149, 0.3);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .peak-card .k {
+      font-size: 0.82rem;
+      color: var(--ok);
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .peak-card .v {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #7be495;
+    }
+
+    @media (max-width: 600px) {
+      .state-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .param-grid,
+      .result-boxes,
+      .loss-grid,
+      .results-summary,
+      .peak-cards {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -881,7 +928,7 @@
 
             <!-- REFERENCE -->
             <div style="font-size:0.72rem;color:var(--muted);margin-bottom:16px;font-style:italic;">
-              (Source of Horton Parameters: EPA Storm Water Management Model (SWMM) 5 User Manual)
+              (Source of Horton parameters: EPA Storm Water Management Model (SWMM) 5 User Manual)
             </div>
 
             <!-- SOIL TYPE -->
@@ -1045,9 +1092,14 @@
               <label>
                 Max. Infiltration Rate, f₀ (mm/hr)
               </label>
-              <input id="f0Input" type="number" step="0.01" min="0" placeholder="Enter f₀ value"
+              <input id="f0Input" type="number" step="0.01" min="0" placeholder="Enter f₀ value from table above"
                 style="margin-top:4px;" oninput="onManualF0Change()" />
               <input id="pervContinuousLoss" type="hidden" value="" />
+              <div style="font-size:0.72rem;color:var(--muted);margin-top:5px;font-style:italic;">
+                Refer to the Infiltration Rate Reference Table above to determine f₀ based on your soil type and
+                moisture condition.
+                <span style="color:var(--muted);">(Source: EPA Storm Water Management Model (SWMM) 5 User Manual)</span>
+              </div>
             </div>
 
             <!-- MANUAL INPUT fc -->
@@ -1056,9 +1108,14 @@
                 Min. Infiltration Rate, f<sub>c</sub> (mm/hr)
               </label>
               <input id="fcInput" type="number" step="0.01" min="0"
-                placeholder="Enter f꜀ value" style="margin-top:4px;"
+                placeholder="Enter f꜀ value — refer Near Saturation range in table above" style="margin-top:4px;"
                 oninput="onManualFcChange()" />
               <input id="fcValue" type="hidden" value="" />
+              <div style="font-size:0.72rem;color:var(--muted);margin-top:5px;font-style:italic;">
+                Equivalent to the soil's saturated hydraulic conductivity. For near saturation condition, refer to the
+                Near Saturation column in the table above.
+                <span style="color:var(--muted);">(Source: EPA Storm Water Management Model (SWMM) 5 User Manual)</span>
+              </div>
             </div>
 
             <!-- DECAY CONSTANT k -->
@@ -1074,6 +1131,10 @@
               <div id="kNote" style="margin-top:8px;padding:8px 10px;border-radius:7px;font-size:0.78rem;
                 background:rgba(78,168,255,0.06);border:1px solid rgba(78,168,255,0.15);color:var(--muted);">
                 k = 2.5 — Moderate decay (loam soils)
+              </div>
+              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px;font-style:italic;">
+                Infiltration rate decay constant for the Horton curve (1/hours). Typical values range between 2 and 7.
+                <span style="color:var(--muted);">(Source: EPA Storm Water Management Model (SWMM) 5 User Manual)</span>
               </div>
             </div>
 
@@ -1188,42 +1249,33 @@
         </div>
 
         <!-- ISOCHRONE INPUT TABLE -->
-        <p class="section-title" style="margin-top:28px;">Isochrone Zone Areas</p>
-        <p style="font-size:0.82rem;color:var(--muted);margin:0 0 12px;">
-          Enter the contributing catchment area (m²) for each isochrone zone. Add one row per zone.
-          The time interval matches the rainfall pattern bin width.
+        <p class="section-title" style="margin-top:28px;">Time-Area Isochrone Zones</p>
+        <p style="font-size:0.82rem;color:var(--muted);margin:0 0 12px;line-height:1.5;">
+          Enter the contributing catchment area (m²) for each time zone. Each row corresponds to
+          one time bin — the area drained within that lag time. Used for Time-Area convolution.
         </p>
 
-        <div style="background:#0e1520;border:1px solid #26344a;border-radius:12px;padding:14px;margin-bottom:16px;">
-          <div class="tableWrap" style="margin-bottom:12px;">
-            <table>
-              <thead>
-                <tr>
-                  <th style="text-align:left;">Isochrone Zone</th>
-                  <th>Area (m²)</th>
-                  <th style="width:60px;"></th>
-                </tr>
-              </thead>
-              <tbody id="isoInputTableBody"></tbody>
-            </table>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <button onclick="addIsoRow()" style="background:rgba(78,168,255,0.12);border:1px solid rgba(78,168,255,0.3);
-              color:var(--accent);padding:8px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;
-              box-shadow:none;">+ Add Zone</button>
-            <div style="margin-left:auto;font-size:0.85rem;color:var(--muted);">
-              Total area entered:
-              <span id="isoTotalEntered" style="color:var(--ok);font-weight:700;margin-left:6px;">—</span> m²
-            </div>
-          </div>
+        <div class="iso-table-wrap">
+          <table class="iso-table">
+            <thead>
+              <tr>
+                <th style="text-align:left;width:160px;">Zone (Bin)</th>
+                <th>Area (m²)</th>
+                <th style="width:60px;"></th>
+              </tr>
+            </thead>
+            <tbody id="isoInputTableBody"></tbody>
+          </table>
         </div>
 
-        <button onclick="buildHydrograph()" style="width:100%;padding:12px;background:rgba(123,228,149,0.12);
-          border:1px solid rgba(123,228,149,0.3);color:var(--ok);border-radius:10px;font-size:0.95rem;
-          font-weight:700;box-shadow:none;margin-bottom:4px;">
-          ▶ Compute Hydrograph
-        </button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <button onclick="addIsoRow()" style="background:transparent;border:1px solid rgba(78,168,255,0.4);
+            color:var(--accent);padding:7px 16px;border-radius:8px;font-size:0.82rem;
+            font-weight:600;cursor:pointer;box-shadow:none;">+ Add Zone</button>
+          <span style="font-size:0.82rem;color:var(--muted);">
+            Total area entered: <strong id="isoTotalEntered" style="color:var(--ok);">—</strong> m²
+          </span>
+        </div>
 
         <div class="wizard-nav">
           <button class="btn-back" onclick="goToTab(3)">← Back</button>
@@ -1236,11 +1288,11 @@
            STEP 5: RESULTS
       ════════════════════════════════ -->
       <div class="tab-panel card" id="panel5">
-        <h2 style="margin-bottom:4px;">Step 5 — Results &amp; Hydrograph</h2>
-        <p class="step-intro">Design storm summary and Time-Area Method hydrograph for the selected catchment.</p>
+        <h2 style="margin-bottom:4px;">Step 5 — Results</h2>
+        <p class="step-intro">Summary of rainfall excess and Time-Area hydrograph for the selected storm event.</p>
 
-        <!-- ── Row 1: Storm + Runoff summary ── -->
-        <div class="results-summary" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+        <!-- Storm summary cards (3-col) -->
+        <div class="results-summary">
           <div class="summary-card">
             <span class="k">Intensity, 𝑖</span>
             <div class="v"><span id="outI">–</span> <small style="font-size:0.75rem;color:var(--muted);">mm/hr</small></div>
@@ -1255,40 +1307,28 @@
           </div>
         </div>
 
-        <!-- ── Row 2: Peak Q cards ── -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
-          <div style="background:linear-gradient(135deg,rgba(123,228,149,0.12),rgba(123,228,149,0.04));
-              border:2px solid rgba(123,228,149,0.35);border-radius:12px;padding:16px;text-align:center;">
-            <span style="display:block;font-size:0.82rem;color:var(--ok);font-weight:600;margin-bottom:6px;">
-              Peak Discharge, Q<sub>peak</sub>
-            </span>
-            <div style="font-size:1.8rem;font-weight:800;color:var(--ok);">
-              <span id="peakQ">–</span>
-            </div>
-            <small style="color:var(--muted);">m³/s</small>
+        <!-- Peak Q cards (2-col, green accent) -->
+        <div class="peak-cards">
+          <div class="peak-card">
+            <span class="k">Peak Discharge, Q<sub>peak</sub></span>
+            <div class="v"><span id="peakQ">–</span> <small style="font-size:0.75rem;color:var(--muted);">m³/s</small></div>
           </div>
-          <div style="background:linear-gradient(135deg,rgba(78,168,255,0.10),rgba(78,168,255,0.03));
-              border:2px solid rgba(78,168,255,0.3);border-radius:12px;padding:16px;text-align:center;">
-            <span style="display:block;font-size:0.82rem;color:var(--accent);font-weight:600;margin-bottom:6px;">
-              Time to Peak
-            </span>
-            <div style="font-size:1.8rem;font-weight:800;color:var(--accent);">
-              <span id="peakT">–</span>
-            </div>
-            <small style="color:var(--muted);">min</small>
+          <div class="peak-card">
+            <span class="k">Time to Peak</span>
+            <div class="v"><span id="peakT">–</span> <small style="font-size:0.75rem;color:var(--muted);">min</small></div>
           </div>
         </div>
 
-        <!-- ── Hydrograph Chart ── -->
-        <p class="section-title">Hydrograph — Discharge vs Time</p>
+        <!-- Hydrograph chart (always visible) -->
+        <p class="section-title">Time-Area Hydrograph</p>
         <p style="font-size:0.82rem;color:var(--muted);margin:0 0 12px;">
-          Time-Area convolution: Q(t) = Σ [e(τ) × A(t−τ)] / (Δt × 1000) &nbsp;|&nbsp; Unit: m³/s
+          Green line = discharge Q (m³/s) over time computed by convolution of rainfall excess and isochrone areas.
         </p>
         <canvas id="hydrographCanvas" height="100" style="margin-bottom:24px;"></canvas>
 
-        <!-- ── Rainfall Excess Table (existing) ── -->
-        <p class="section-title">Rainfall Excess per Time Bin</p>
-        <div class="tableWrap" style="margin-bottom:12px;">
+        <!-- Rainfall Excess Table -->
+        <p class="section-title">Rainfall Excess (Runoff)</p>
+        <div class="tableWrap">
           <table id="resultTable">
             <thead>
               <tr>
@@ -1313,41 +1353,39 @@
             </tfoot>
           </table>
         </div>
-        <p class="hint" style="margin-top:4px;margin-bottom:20px;">
+
+        <p class="hint" style="margin-top:12px;">
           Loss per Table 2.6 (Chow et al., 1988) — Pervious: IL=10mm, CL by Horton. Impervious: IL=1.5mm, CL=0.
         </p>
 
-        <!-- ── Collapsible Convolution Matrix ── -->
-        <details id="convDetails" style="margin-top:8px;">
-          <summary style="cursor:pointer;padding:12px 16px;background:#0e1520;border:1px solid #26344a;
-            border-radius:10px;color:var(--accent);font-weight:600;font-size:0.9rem;
-            list-style:none;display:flex;align-items:center;gap:8px;">
+        <!-- Collapsible Convolution Matrix -->
+        <details id="convDetails" style="margin-top:24px;">
+          <summary style="cursor:pointer;display:flex;align-items:center;gap:8px;
+            color:var(--accent);font-size:0.9rem;font-weight:600;padding:10px 0;
+            border-top:1px solid #1a2433;user-select:none;">
             <span id="convToggleIcon">▶</span>
-            Show Full Convolution Matrix (Time-Area Method)
-            <span style="margin-left:auto;font-size:0.78rem;color:var(--muted);font-weight:400;">
-              SV reference table format
+            Full Convolution Matrix
+            <span style="font-size:0.78rem;color:var(--muted);font-weight:400;margin-left:4px;">
+              — diagonal table matching SV Excel layout
             </span>
           </summary>
-          <div style="margin-top:12px;">
-            <p style="font-size:0.82rem;color:var(--muted);margin:0 0 10px;">
-              Each cell = e(τ) × A(t−τ) / (Δt × 1000) — individual contribution to Q at that time step.
-              Highlighted row = peak discharge. Values in m³/s.
-            </p>
-            <div class="tableWrap" id="convMatrixWrap">
-              <p style="text-align:center;color:var(--muted);padding:20px;font-size:0.85rem;">
-                Compute hydrograph in Step 4 to populate this table.
+          <p style="font-size:0.82rem;color:var(--muted);margin:10px 0 12px;line-height:1.5;">
+            Each column = one excess rainfall bin contributing to total Q at each time step.
+            <span style="color:var(--warn);">★ Yellow row = peak discharge</span>
+          </p>
+          <div style="overflow-x:auto;border-radius:10px;border:1px solid #1a2433;">
+            <div id="convMatrixWrap">
+              <p style="padding:20px;text-align:center;color:var(--muted);font-size:0.85rem;">
+                Compute the hydrograph to see the convolution matrix.
               </p>
             </div>
           </div>
         </details>
 
-        <!-- Hidden calcBtn for backward compat -->
-        <button id="calcBtn" style="display:none;"></button>
-
         <div class="wizard-nav">
           <button class="btn-back" onclick="goToTab(4)">← Back to Catchment</button>
           <button class="btn-reset" onclick="resetAll()">↺ Reset All</button>
-          <button class="btn-next" onclick="buildHydrograph()">↻ Recompute Hydrograph</button>
+          <button class="btn-next" id="calcBtn">↻ Recalculate</button>
         </div>
       </div>
 
@@ -1386,8 +1424,11 @@
 
     function calculateAndGoToResults() {
       document.getElementById('calcBtn').click();
-      if (typeof buildHydrograph === 'function') buildHydrograph();
       goToTab(5);
+      // Build hydrograph after a short tick so runoff table is populated
+      setTimeout(() => {
+        if (typeof buildHydrograph === 'function') buildHydrograph();
+      }, 50);
     }
 
     /* ================================================================
@@ -1421,10 +1462,23 @@
       updateAreaBar();
 
       // Reset results
-      ['outI', 'outDepth', 'outExcess', 'sumPattern', 'sumDepth', 'sumLoss', 'sumExcess'].forEach(id => {
-        document.getElementById(id).textContent = '–';
+      ['outI', 'outDepth', 'outExcess', 'sumPattern', 'sumDepth', 'sumLoss', 'sumExcess',
+       'peakQ', 'peakT'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '–';
       });
       document.querySelector('#resultTable tbody').innerHTML = '';
+      if (typeof hydrographChart !== 'undefined' && hydrographChart) {
+        hydrographChart.destroy(); hydrographChart = null;
+      }
+      const convWrap = document.getElementById('convMatrixWrap');
+      if (convWrap) convWrap.innerHTML = '<p style="padding:20px;text-align:center;color:var(--muted);font-size:0.85rem;">Compute the hydrograph to see the convolution matrix.</p>';
+      // Reset isochrone table
+      const isoTbody = document.getElementById('isoInputTableBody');
+      if (isoTbody) isoTbody.innerHTML = '';
+      const isoTotal = document.getElementById('isoTotalEntered');
+      if (isoTotal) isoTotal.textContent = '—';
+      if (typeof buildIsoInputTable === 'function') buildIsoInputTable();
 
       // Reset tab marks
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('done'));
@@ -1579,17 +1633,14 @@
     window.addEventListener("DOMContentLoaded", function () {
       updateAreaBar();
       onKSliderChange();
-      // Start with one isochrone row
+      // Init isochrone table
       if (typeof buildIsoInputTable === 'function') buildIsoInputTable();
-    });
-
-    /* ── Convolution details toggle icon ── */
-    document.addEventListener('DOMContentLoaded', function () {
-      const det = document.getElementById('convDetails');
-      if (det) {
-        det.addEventListener('toggle', function () {
+      // Convolution details toggle icon
+      const convDet = document.getElementById('convDetails');
+      if (convDet) {
+        convDet.addEventListener('toggle', () => {
           const icon = document.getElementById('convToggleIcon');
-          if (icon) icon.textContent = det.open ? '▼' : '▶';
+          if (icon) icon.textContent = convDet.open ? '▼' : '▶';
         });
       }
     });
