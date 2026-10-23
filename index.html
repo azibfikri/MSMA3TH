@@ -1017,11 +1017,6 @@
             <!-- DECAY CONSTANT k -->
             <div style="margin-bottom:14px;">
               <label>Decay Constant, k (1/hr)</label>
-              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px;font-style:italic;">
-                Infiltration rate decay constant for the Horton curve (1/hours). Typical values range between 2 and 7.
-                <span style="color:var(--muted);">(Source: EPA Storm Water Management Model (SWMM) 5 User Manual)</span>
-              </div>
-              
               <div class="range-row">
                 <span class="range-label">0</span>
                 <input id="kSlider" type="range" min="0" max="7" step="0.1" value="2.5" oninput="onKSliderChange()" />
@@ -1032,6 +1027,10 @@
               <div id="kNote" style="margin-top:8px;padding:8px 10px;border-radius:7px;font-size:0.78rem;
                 background:rgba(78,168,255,0.06);border:1px solid rgba(78,168,255,0.15);color:var(--muted);">
                 k = 2.5 — Moderate decay (loam soils)
+              </div>
+              <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px;font-style:italic;">
+                Infiltration rate decay constant for the Horton curve (1/hours). Typical values range between 2 and 7.
+                <span style="color:var(--muted);">(Source: EPA Storm Water Management Model (SWMM) 5 User Manual)</span>
               </div>
             </div>
 
