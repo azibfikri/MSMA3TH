@@ -1336,37 +1336,16 @@
         </p>
         <canvas id="hydrographCanvas" height="100" style="margin-bottom:24px;"></canvas>
 
-        <!-- Rainfall Excess Table -->
-        <p class="section-title">Rainfall Excess (Runoff)</p>
-        <div class="tableWrap">
-          <table id="resultTable">
-            <thead>
-              <tr>
-                <th>Time (min)</th>
-                <th>Pattern</th>
-                <th>Depth (mm)</th>
-                <th>Loss (mm)</th>
-                <th>Excess (mm)</th>
-                <th>Excess (mm/s)</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-            <tfoot>
-              <tr>
-                <th>Total</th>
-                <th id="sumPattern">–</th>
-                <th id="sumDepth">–</th>
-                <th id="sumLoss">–</th>
-                <th id="sumExcess">–</th>
-                <th>—</th>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        <p class="hint" style="margin-top:12px;">
-          Loss per Table 2.6 (Chow et al., 1988) — Pervious: IL=10mm, CL by Horton. Impervious: IL=1.5mm, CL=0.
-        </p>
+        <!-- Hidden result table kept for app.js calcBtn compatibility -->
+        <table id="resultTable" style="display:none;">
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <th id="sumPattern"></th><th id="sumDepth"></th>
+              <th id="sumLoss"></th><th id="sumExcess"></th>
+            </tr>
+          </tfoot>
+        </table>
 
         <!-- Collapsible Convolution Matrix -->
         <details id="convDetails" style="margin-top:24px;">
