@@ -7,6 +7,7 @@
   <title>MSMA Time-Area Method Calculator</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     /* ================================================================
        WIZARD TABS
@@ -1386,8 +1387,14 @@
         <div class="wizard-nav">
           <button class="btn-back" onclick="goToTab(4)">← Back to Catchment</button>
           <button class="btn-reset" onclick="resetAll()">↺ Reset All</button>
-          <button class="btn-next" onclick="if(typeof buildHydrograph==='function')buildHydrograph()">↻
-            Recalculate</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-next" onclick="if(typeof buildHydrograph==='function')buildHydrograph()"
+              style="background:transparent;border:1px solid rgba(78,168,255,0.4);color:var(--accent);box-shadow:none;">↻
+              Recalculate</button>
+            <button class="btn-next" id="exportBtn" onclick="exportToExcel()"
+              style="background:#7be495;color:#021b33;box-shadow:0 4px 14px rgba(123,228,149,0.3);">⬇ Export
+              Excel</button>
+          </div>
         </div>
       </div>
 

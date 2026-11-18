@@ -1117,3 +1117,234 @@ window.addEventListener('DOMContentLoaded', function () {
   $('state').value = '';
   $('durationMin').value = '';
 });
+
+/* ================================================================
+   EXPORT TO EXCEL — full summary all steps
+   Uses SheetJS (xlsx library loaded in index.html)
+================================================================ */
+function exportToExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel library not loaded yet. Please wait a moment and try again.');
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  /* ── helpers ── */
+  const val = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return '—';
+    return el.value !== undefined && el.value !== '' ? el.value : (el.textContent || '—');
+  };
+  const txt = (id) => {
+    const el = document.getElementById(id);
+    return el ? (el.textContent.trim() || '—') : '—';
+  };
+
+  /* ══════════════════════════════════════════════════════════════
+     SHEET 1 — Project Summary (Steps 1–5 key values)
+  ══════════════════════════════════════════════════════════════ */
+  const summaryRows = [
+    ['MSMA Time-Area Method Calculator — Summary Report'],
+    ['Generated:', new Date().toLocaleString('en-MY')],
+    [],
+    ['STEP 1 — LOCATION'],
+    ['State', txt('badgeText').replace('✓ ', '')],
+    ['Station', (() => {
+      const sel = document.getElementById('stationSelect');
+      if (!sel) return '—';
+      const opt = sel.options[sel.selectedIndex];
+      return opt && opt.value ? opt.text : '—';
+    })()],
+    [],
+    ['STEP 2 — STORM PARAMETERS'],
+    ['ARI (years)', val('ariYears')],
+    ['Duration (min)', val('durationMin')],
+    ['IDF λ', val('idfK')],
+    ['IDF κ', val('idfX')],
+    ['IDF θ', val('idfA')],
+    ['IDF η', val('idfN')],
+    ['Rainfall Intensity i (mm/hr)', txt('designIntensity')],
+    ['Total Design Rainfall P (mm)', txt('totalDepthBox')],
+    [],
+    ['STEP 3 — RAINFALL PATTERN'],
+    ['Time Bin (min)', 'Fraction', 'Depth (mm)'],
+  ];
+
+  // Pattern rows
+  const depthCells = document.querySelectorAll('#depthGrid .depthCell');
+  const patternCells = document.querySelectorAll('.patternCell');
+  depthCells.forEach((cell, i) => {
+    const lbl = cell.parentElement ? cell.parentElement.querySelector('label').textContent : `Bin ${i + 1}`;
+    const frac = patternCells[i] ? parseFloat(patternCells[i].value).toFixed(4) : '—';
+    summaryRows.push([lbl, frac, parseFloat(cell.value).toFixed(3)]);
+  });
+
+  summaryRows.push([]);
+  summaryRows.push(['STEP 4 — CATCHMENT & LOSSES']);
+  summaryRows.push(['Pervious Area (%)', val('perviousArea')]);
+  summaryRows.push(['Impervious Area (%)', val('imperviousArea')]);
+  summaryRows.push(['Max Infiltration Rate f₀ (mm/hr)', val('f0Input')]);
+  summaryRows.push(['Min Infiltration Rate fc (mm/hr)', val('fcInput')]);
+  summaryRows.push(['Decay Constant k (1/hr)', val('kValue')]);
+  summaryRows.push(['Pervious Initial Loss (mm)', '10.00 (fixed)']);
+  summaryRows.push(['Impervious Initial Loss (mm)', '1.50 (fixed)']);
+  summaryRows.push([]);
+  summaryRows.push(['STEP 5 — HYDROGRAPH RESULTS']);
+  summaryRows.push(['Intensity i (mm/hr)', txt('outI')]);
+  summaryRows.push(['Total Depth P (mm)', txt('outDepth')]);
+  summaryRows.push(['Total Excess (mm)', txt('outExcess')]);
+  summaryRows.push(['Peak Discharge Qpeak (m³/s)', txt('peakQ')]);
+  summaryRows.push(['Time to Peak (min)', txt('peakT')]);
+
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+  // Column widths
+  wsSummary['!cols'] = [{ wch: 36 }, { wch: 22 }, { wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+  /* ══════════════════════════════════════════════════════════════
+     SHEET 2 — Loss Estimation Table (Step 4)
+  ══════════════════════════════════════════════════════════════ */
+  const lossHeader = [
+    'Time Bin (min)',
+    'Perv. Initial Loss (mm)', 'Perv. Cont. Rate (mm/hr)', 'Perv. Cont. Loss (mm)',
+    'Imp. Initial Loss (mm)', 'Imp. Cont. Rate (mm/hr)', 'Imp. Cont. Loss (mm)',
+    'Total Loss (mm)'
+  ];
+  const lossData = [lossHeader];
+  document.querySelectorAll('#lossEstTableBody tr').forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length >= 8) {
+      lossData.push(Array.from(cells).map(c => c.textContent.trim()));
+    }
+  });
+  lossData.push(['', '', '', '', '', '', 'Total:', txt('lossEstTotal')]);
+
+  const wsLoss = XLSX.utils.aoa_to_sheet(lossData);
+  wsLoss['!cols'] = Array(8).fill({ wch: 20 });
+  XLSX.utils.book_append_sheet(wb, wsLoss, 'Loss Estimation');
+
+  /* ══════════════════════════════════════════════════════════════
+     SHEET 3 — Rainfall Excess / Runoff (Step 4)
+  ══════════════════════════════════════════════════════════════ */
+  const runoffHeader = ['Time Bin (min)', 'Rainfall (mm)', 'Total Loss (mm)', 'Excess (mm)', 'Excess (mm/s)'];
+  const runoffData = [runoffHeader];
+  document.querySelectorAll('#runoffTableBody tr').forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length >= 5) {
+      runoffData.push(Array.from(cells).map(c => {
+        const v = parseFloat(c.textContent.trim());
+        return isFinite(v) ? v : c.textContent.trim();
+      }));
+    }
+  });
+  runoffData.push([
+    'Total',
+    parseFloat(txt('runoffTotalRain')) || '—',
+    parseFloat(txt('runoffTotalLoss')) || '—',
+    parseFloat(txt('runoffTotalExcess')) || '—',
+    '—'
+  ]);
+
+  const wsRunoff = XLSX.utils.aoa_to_sheet(runoffData);
+  wsRunoff['!cols'] = Array(5).fill({ wch: 18 });
+  XLSX.utils.book_append_sheet(wb, wsRunoff, 'Rainfall Excess');
+
+  /* ══════════════════════════════════════════════════════════════
+     SHEET 4 — Isochrone Zones (Step 5)
+  ══════════════════════════════════════════════════════════════ */
+  const isoHeader = ['Zone (Bin)', 'Area (m²)'];
+  const isoData = [isoHeader];
+  document.querySelectorAll('#isoInputTableBody tr').forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    const inp = tr.querySelector('input[type=number]');
+    if (cells.length >= 2 && inp) {
+      isoData.push([cells[0].textContent.trim(), parseFloat(inp.value) || 0]);
+    }
+  });
+  isoData.push(['Total', (() => {
+    let t = 0;
+    document.querySelectorAll('#isoInputTableBody input[type=number]').forEach(i => { const v = parseFloat(i.value); if (isFinite(v)) t += v; });
+    return t;
+  })()]);
+
+  const wsIso = XLSX.utils.aoa_to_sheet(isoData);
+  wsIso['!cols'] = [{ wch: 24 }, { wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, wsIso, 'Isochrone Zones');
+
+  /* ══════════════════════════════════════════════════════════════
+     SHEET 5 — Hydrograph Q(t) (Step 5)
+  ══════════════════════════════════════════════════════════════ */
+  if (lastHydrographData) {
+    const { Q, timeLabels, peakQ } = lastHydrographData;
+    const hydHeader = ['Time (min)', 'Q (m³/s)', 'Peak?'];
+    const hydData = [hydHeader];
+    Q.forEach((q, i) => {
+      hydData.push([timeLabels[i], parseFloat(q.toFixed(6)), q === peakQ ? 'PEAK' : '']);
+    });
+
+    const wsHyd = XLSX.utils.aoa_to_sheet(hydData);
+    wsHyd['!cols'] = [{ wch: 14 }, { wch: 16 }, { wch: 10 }];
+    XLSX.utils.book_append_sheet(wb, wsHyd, 'Hydrograph Q(t)');
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     SHEET 6 — Convolution Matrix (Step 5)
+  ══════════════════════════════════════════════════════════════ */
+  if (lastHydrographData) {
+    const { Q, timeLabels, excessMms, isoAreas, binMin, numBins, numIso, totalLen, peakQ } = lastHydrographData;
+
+    // Header row 1: Time | Iso Area | Excess | bin labels... | Q
+    const convHead1 = ['Time (min)', 'Iso Area (m²)', 'Excess (mm/s)'];
+    for (let b = 0; b < numBins; b++) convHead1.push(`${b * binMin}–${(b + 1) * binMin} min`);
+    convHead1.push('Q (m³/s)');
+
+    // Header row 2: excess values
+    const convHead2 = ['', '', ''];
+    for (let b = 0; b < numBins; b++) convHead2.push(parseFloat(excessMms[b].toFixed(6)));
+    convHead2.push('');
+
+    // Header row 3: isochrone areas
+    const convHead3 = ['', '', ''];
+    for (let b = 0; b < numBins; b++) convHead3.push(b < numIso ? isoAreas[b] : '');
+    convHead3.push('');
+
+    const convData = [convHead1, convHead2, convHead3];
+
+    for (let t = 0; t < totalLen; t++) {
+      const row = [
+        timeLabels[t],
+        t < numIso ? isoAreas[t] : '',
+        t < numBins ? parseFloat(excessMms[t].toFixed(6)) : ''
+      ];
+      for (let b = 0; b < numBins; b++) {
+        const aIdx = t - b;
+        if (aIdx >= 0 && aIdx < numIso && isFinite(excessMms[b]) && excessMms[b] > 0) {
+          row.push(parseFloat((excessMms[b] * isoAreas[aIdx] / 1000).toFixed(7)));
+        } else {
+          row.push('');
+        }
+      }
+      row.push(parseFloat(Q[t].toFixed(6)));
+      convData.push(row);
+    }
+
+    const wsConv = XLSX.utils.aoa_to_sheet(convData);
+    const colWidths = [{ wch: 12 }, { wch: 14 }, { wch: 14 }];
+    for (let b = 0; b < numBins; b++) colWidths.push({ wch: 14 });
+    colWidths.push({ wch: 12 });
+    wsConv['!cols'] = colWidths;
+    XLSX.utils.book_append_sheet(wb, wsConv, 'Convolution Matrix');
+  }
+
+  /* ── Save file ── */
+  const state = (() => {
+    const el = document.getElementById('badgeText');
+    return el ? el.textContent.replace('✓ ', '').trim().replace(/\s+/g, '_') : 'MSMA';
+  })();
+  const ari = document.getElementById('ariYears') ? document.getElementById('ariYears').value : '';
+  const dur = document.getElementById('durationMin') ? document.getElementById('durationMin').value : '';
+  const filename = `MSMA_${state}_ARI${ari}_${dur}min.xlsx`;
+
+  XLSX.writeFile(wb, filename);
+}
